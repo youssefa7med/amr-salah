@@ -1,0 +1,865 @@
+import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Modal } from '../components/ui/Modal'
+import { X, Search, Trash2, Printer, Check } from 'lucide-react'
+import { useClients } from '../db/hooks/useClients'
+import { useServices } from '../db/hooks/useServices'
+import { useTransactions } from '../db/hooks/useTransactions'
+import { useVisitLogs } from '../db/hooks/useVisitLogs'
+import { useServiceVariants } from '../db/hooks/useServiceVariants'
+import { useSettings } from '../db/hooks/useSettings'
+import { appEmitter } from '../utils/eventEmitter'
+import { getEgyptDateString, getEgyptTimeString } from '../utils/egyptTime'
+import toast from 'react-hot-toast'
+import Fuse from 'fuse.js'
+
+interface CartItem {
+  id: string
+  name: string
+  price: number
+}
+
+interface CompletedTransaction {
+  clientName: string
+  clientPhone: string
+  barberName?: string
+  barberPhone?: string
+  date: string
+  time: string
+  items: CartItem[]
+  subtotal: number
+  discount: number
+  discountType: 'percentage' | 'fixed'
+  total: number
+  paymentMethod: string
+}
+
+export const POS: React.FC = () => {
+  const { t } = useTranslation()
+  const { clients, addClient, updateClient } = useClients()
+  const { services } = useServices()
+  const { addTransaction } = useTransactions()
+  const { addVisitLog } = useVisitLogs()
+  const { getVariantsByServiceId } = useServiceVariants()
+  const { getSetting } = useSettings()
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [discount, setDiscount] = useState(0)
+  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed')
+  const [allVariants, setAllVariants] = useState<{[key: string]: any[]}>({})
+  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [showClientSearch, setShowClientSearch] = useState(false)
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [completedTransaction, setCompletedTransaction] = useState<CompletedTransaction | null>(null)
+  const [showReceipt, setShowReceipt] = useState(false)
+  const [selectedBarber, setSelectedBarber] = useState<any>(null)
+
+  // Load variants
+  useEffect(() => {
+    const loadAllVariants = async () => {
+      const variants: {[key: string]: any[]} = {}
+      for (const service of services) {
+        if (!service.id) continue
+        try {
+          const serviceVariants = await getVariantsByServiceId(service.id)
+          if (serviceVariants && serviceVariants.length > 0) {
+            variants[service.id] = serviceVariants
+          }
+        } catch (err) {
+          // No variants
+        }
+      }
+      setAllVariants(variants)
+    }
+
+    if (services.length > 0) {
+      loadAllVariants()
+    }
+  }, [services, getVariantsByServiceId])
+
+  // Fuzzy search clients
+  const fuse = new Fuse(clients, {
+    keys: ['name', 'phone'],
+    threshold: 0.3,
+  })
+  const searchResults = searchQuery.trim() ? fuse.search(searchQuery) : []
+
+  const handleAddService = async (service: any) => {
+    const variants = allVariants[service.id]
+
+    if (variants && variants.length > 0) {
+      // Show variant picker
+      const variantPrice = variants[0].price
+      addToCart(service.nameAr, variantPrice)
+    } else {
+      // Add with default price
+      addToCart(service.nameAr, service.price)
+    }
+  }
+
+  const handleAddVariant = (service: any, variant: any) => {
+    addToCart(`${service.nameAr} - ${variant.nameAr}`, variant.price)
+  }
+
+  const addToCart = (name: string, price: number) => {
+    setCart([...cart, { id: Math.random().toString(), name, price }])
+    toast.success('✅ تم اضافة الخدمة')
+  }
+
+  const removeFromCart = (idx: number) => {
+    setCart(cart.filter((_, i) => i !== idx))
+    toast.success('تم الحذف')
+  }
+
+  const calculateSubtotal = () => cart.reduce((sum, item) => sum + item.price, 0)
+  const calculateDiscount = () =>
+    discountType === 'percentage'
+      ? (calculateSubtotal() * discount) / 100
+      : discount
+
+  const subtotal = calculateSubtotal()
+  const discountAmount = calculateDiscount()
+  const total = subtotal - discountAmount
+
+  const handleCompleteSale = async () => {
+    if (!selectedClient) {
+      toast.error('اختر العميل أولاً')
+      return
+    }
+
+    if (cart.length === 0) {
+      toast.error('السلة فارغة')
+      return
+    }
+
+    try {
+      setIsCheckingOut(true)
+      const dateStr = getEgyptDateString()
+      const timeStr = getEgyptTimeString()
+
+      // Create transaction
+      await addTransaction({
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
+        clientPhone: selectedClient.phone,
+        visitNumber: (selectedClient.totalVisits || 0) + 1,
+        date: dateStr,
+        time: timeStr,
+        items: cart,
+        subtotal,
+        discount: discountAmount,
+        discountType,
+        total,
+        paymentMethod: paymentMethod as 'cash' | 'card' | 'wallet',
+      })
+
+      // Update client
+      await updateClient(selectedClient.id, {
+        totalVisits: (selectedClient.totalVisits || 0) + 1,
+        totalSpent: (selectedClient.totalSpent || 0) + total,
+        lastVisit: dateStr,
+      })
+
+      // Create visit log
+      await addVisitLog({
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
+        visitDate: dateStr,
+        visitTime: timeStr,
+        servicesCount: cart.length,
+        totalSpent: total,
+        notes: `${cart.length} services - ${paymentMethod}`,
+      })
+
+      // Show receipt
+      setCompletedTransaction({
+        clientName: selectedClient.name,
+        clientPhone: selectedClient.phone,
+        barberName: selectedBarber?.name || '',
+        barberPhone: selectedBarber?.phone || '',
+        date: dateStr,
+        time: timeStr,
+        items: cart,
+        subtotal,
+        discount: discountAmount,
+        discountType,
+        total,
+        paymentMethod,
+      })
+      setShowReceipt(true)
+      toast.success('✅ تمت العملية بنجاح!')
+
+      // Reset form
+      setCart([])
+      setDiscount(0)
+      setSelectedClient(null)
+      appEmitter.emit('transaction:created', { total, date: dateStr })
+    } catch (err: any) {
+      toast.error(err.message || 'حدث خطأ')
+    } finally {
+      setIsCheckingOut(false)
+    }
+  }
+
+  const handlePrint = () => {
+    if (completedTransaction) {
+      const printWindow = window.open('', '', 'height=600,width=400')
+      if (printWindow) {
+        // Get latest shop details from settings
+        const currentBarbershopName = getSetting('barbershipName', '💈 محل الحلاقة')
+        const currentBarbershopPhone = getSetting('barbershipPhone', '')
+
+        const receiptHTML = `
+          <!DOCTYPE html>
+          <html dir="rtl" lang="ar">
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>الإيصال</title>
+            <style>
+              * { 
+                margin: 0; 
+                padding: 0; 
+                box-sizing: border-box; 
+              }
+              html, body { 
+                width: 80mm;
+                margin: 0;
+                padding: 0;
+              }
+              body { 
+                font-family: 'Arial', 'Helvetica', sans-serif;
+                font-size: 12px;
+                line-height: 1.5;
+                direction: rtl;
+                text-align: right;
+                background: white;
+                color: black;
+              }
+              .receipt {
+                width: 80mm;
+                padding: 10px;
+                margin: 0;
+                background: white;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid black;
+                padding-bottom: 8px;
+                margin-bottom: 8px;
+              }
+              .store-name {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 4px;
+              }
+              .receipt-title {
+                font-size: 11px;
+                font-weight: bold;
+              }
+              .divider {
+                border-bottom: 1px dashed black;
+                margin: 6px 0;
+                padding-bottom: 6px;
+              }
+              .section-title {
+                font-weight: bold;
+                margin-bottom: 4px;
+              }
+              .row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                margin-bottom: 2px;
+              }
+              .total-row {
+                font-weight: bold;
+              }
+              .final-total {
+                text-align: center;
+                font-size: 16px;
+                font-weight: bold;
+                margin: 8px 0;
+              }
+              .footer {
+                text-align: center;
+                border-top: 1px solid black;
+                padding-top: 8px;
+                margin-top: 8px;
+                font-size: 10px;
+              }
+              @media print {
+                body { width: 80mm; margin: 0; padding: 0; }
+                .receipt { width: 80mm; margin: 0; padding: 10px; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="receipt">
+              <!-- Header -->
+              <div class="header">
+                <div class="store-name">${currentBarbershopName}</div>
+                ${currentBarbershopPhone ? `<div class="receipt-title" style="font-size: 10px; margin-bottom: 2px;">📱 ${currentBarbershopPhone}</div>` : ''}
+                <div class="receipt-title">إيصال الدفع</div>
+              </div>
+
+              <!-- Date & Time -->
+              <div class="divider">
+                <div style="text-align: center; font-size: 11px;">
+                  <div>${completedTransaction.date}</div>
+                  <div>${completedTransaction.time}</div>
+                </div>
+              </div>
+
+              <!-- Client Info -->
+              <div class="divider">
+                <div class="row">
+                  <span>${completedTransaction.clientName}</span>
+                  <span>العميل:</span>
+                </div>
+                <div class="row">
+                  <span>${completedTransaction.clientPhone}</span>
+                  <span>الهاتف:</span>
+                </div>
+              </div>
+
+              <!-- Barber Info -->
+              ${completedTransaction.barberName ? `
+              <div class="divider">
+                <div class="row">
+                  <span>${completedTransaction.barberName}</span>
+                  <span>الحلاق:</span>
+                </div>
+                ${completedTransaction.barberPhone ? `
+                <div class="row">
+                  <span>${completedTransaction.barberPhone}</span>
+                  <span>هاتف الحلاق:</span>
+                </div>
+                ` : ''}
+              </div>
+              ` : ''}
+
+              <!-- Items -->
+              <div class="divider">
+                <div class="section-title">الخدمات:</div>
+                ${completedTransaction.items.map(item => `
+                <div class="row">
+                  <span>${item.price} ج.م</span>
+                  <span>${item.name}</span>
+                </div>
+                `).join('')}
+              </div>
+
+              <!-- Totals -->
+              <div class="divider">
+                <div class="row">
+                  <span>${completedTransaction.subtotal.toFixed(2)} ج.م</span>
+                  <span>الإجمالي:</span>
+                </div>
+                ${completedTransaction.discount > 0 ? `
+                <div class="row" style="color: red;">
+                  <span>-${completedTransaction.discount.toFixed(2)} ج.م</span>
+                  <span>الخصم:</span>
+                </div>
+                ` : ''}
+              </div>
+
+              <!-- Final Total -->
+              <div class="final-total">
+                ${completedTransaction.total.toFixed(2)} ج.م
+              </div>
+
+              <!-- Payment Method -->
+              <div class="divider">
+                <div style="text-align: center; font-size: 11px;">
+                  <div>طريقة الدفع: ${getPaymentLabel().replace(/[^\u0600-\u06FF\w\s]/g, '')}</div>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="footer">
+                <div>شكرا لزيارتك</div>
+                <div>يرجى حفظ هذا الإيصال</div>
+              </div>
+            </div>
+
+            <script>
+              window.print();
+            </script>
+          </body>
+          </html>
+        `;
+        
+        printWindow.document.open();
+        printWindow.document.write(receiptHTML);
+        printWindow.document.close();
+      }
+    }
+  }
+
+  const getPaymentLabel = () => {
+    switch (paymentMethod) {
+      case 'cash': return '💵 نقد'
+      case 'card': return '💳 بطاقة'
+      case 'wallet': return '📱 محفظة'
+      default: return paymentMethod
+    }
+  }
+
+  return (
+    <div className="h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="glass-dark border-b border-white/10 px-4 py-3 md:px-6 md:py-4 flex items-center justify-between z-20">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">💰 كاشير</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            {selectedClient ? `${selectedClient.name} ✓` : 'لم يتم اختيار عميل'}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-gray-400 text-xs">الإجمالي</p>
+          <p className="text-3xl md:text-4xl font-bold text-gold-400">
+            {total.toFixed(2)}
+          </p>
+          <p className="text-xs text-gray-400">ج.م</p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-0 md:gap-4 p-0 md:p-4">
+        {/* Left: Services - Full width on mobile, 2/3 on desktop */}
+        <div className="flex-1 flex flex-col overflow-hidden md:rounded-lg md:border md:border-white/10 md:bg-white/5">
+          {/* Client Selection Bar */}
+          <div className="px-4 py-3 md:px-6 md:py-4 border-b border-white/10 flex-shrink-0">
+            {selectedClient ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-3 p-3 bg-gradient-to-r from-gold-400/10 to-yellow-500/10 border border-gold-400/30 rounded-lg"
+              >
+                <div className="flex-1">
+                  <p className="text-white font-bold text-lg">{selectedClient.name}</p>
+                  <p className="text-xs text-gray-300">{selectedClient.phone}</p>
+                </div>
+                <motion.button
+                  onClick={() => setSelectedClient(null)}
+                  whileHover={{ scale: 1.1 }}
+                  className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition"
+                >
+                  <X size={20} />
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.button
+                onClick={() => setShowClientSearch(true)}
+                whileHover={{ scale: 1.01 }}
+                className="w-full p-4 border-2 border-dashed border-gold-400/40 hover:border-gold-400 rounded-lg transition flex items-center justify-center gap-2 text-gold-400 font-bold text-center"
+              >
+                <Search size={20} />
+                <span>اختر عميل</span>
+              </motion.button>
+            )}
+          </div>
+
+          {/* Services Grid */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3">
+            <h2 className="text-lg font-bold text-white sticky top-0 bg-gradient-to-b from-black to-transparent">
+              📋 الخدمات
+            </h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              <AnimatePresence mode="popLayout">
+                {services.map((service) => {
+                  const variants = (service.id && allVariants[service.id]) || []
+
+                  return (
+                    <motion.div
+                      key={service.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ type: 'spring', stiffness: 200 }}
+                      className="group"
+                    >
+                      {variants.length > 0 ? (
+                        // Show first variant as main button, others nested
+                        <div className="space-y-1.5">
+                          <motion.button
+                            onClick={() => handleAddVariant(service, variants[0])}
+                            whileHover={{ scale: 1.05, y: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="w-full p-3 bg-gradient-to-br from-white/15 to-white/5 hover:from-gold-400/20 hover:to-yellow-500/15 border border-white/20 hover:border-gold-400/40 rounded-lg transition shadow-lg"
+                          >
+                            <p className="text-white font-bold text-xs md:text-sm line-clamp-2">
+                              {service.nameAr}
+                            </p>
+                            <p className="text-gold-400 font-bold text-sm mt-1">
+                              {variants[0].price} ج.م
+                            </p>
+                          </motion.button>
+
+                          {/* Show other variants */}
+                          {variants.length > 1 && (
+                            <div className="space-y-1">
+                              {variants.slice(1, 3).map((variant: any) => (
+                                <motion.button
+                                  key={variant.id}
+                                  onClick={() => handleAddVariant(service, variant)}
+                                  whileHover={{ scale: 1.05, x: 2 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  className="w-full p-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-400/30 rounded text-left transition text-xs"
+                                >
+                                  <p className="text-gray-300 truncate">{variant.nameAr}</p>
+                                  <p className="text-gold-400 font-bold text-xs">
+                                    {variant.price} ج.م
+                                  </p>
+                                </motion.button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // Show default service
+                        <motion.button
+                          onClick={() => handleAddService(service)}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="w-full p-3 bg-gradient-to-br from-white/15 to-white/5 hover:from-gold-400/20 hover:to-yellow-500/15 border border-white/20 hover:border-gold-400/40 rounded-lg transition shadow-lg space-y-1"
+                        >
+                          <p className="text-white font-bold text-xs md:text-sm line-clamp-2">
+                            {service.nameAr}
+                          </p>
+                          <p className="text-gold-400 font-bold text-sm">
+                            {service.price} ج.م
+                          </p>
+                        </motion.button>
+                      )}
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Cart & Checkout - Full width on mobile below services, sidebar on desktop */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full md:w-96 flex flex-col bg-gradient-to-br from-white/10 to-white/5 border-t md:border-t-0 md:border border-white/10 rounded-t-2xl md:rounded-lg p-4 md:p-6 space-y-4 overflow-hidden"
+        >
+          {/* Cart Header */}
+          <div className="flex items-center justify-between sticky top-0 bg-gradient-to-b from-black to-transparent -mx-4 md:-mx-6 px-4 md:px-6 py-2">
+            <h2 className="text-lg md:text-xl font-bold text-white">🛒 السلة</h2>
+            <span className="text-sm font-semibold bg-gold-400/20 text-gold-400 px-3 py-1 rounded-full">
+              {cart.length} عنصر
+            </span>
+          </div>
+
+          {/* Cart Items */}
+          <div className="flex-1 overflow-y-auto space-y-2 min-h-16">
+            <AnimatePresence mode="popLayout">
+              {cart.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="h-full flex items-center justify-center"
+                >
+                  <p className="text-gray-500 text-center text-sm">السلة فارغة حالياً</p>
+                </motion.div>
+              ) : (
+                cart.map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: 100 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold truncate">{item.name}</p>
+                      <p className="text-gold-400 font-bold text-sm">{item.price} ج.م</p>
+                    </div>
+                    <motion.button
+                      onClick={() => removeFromCart(idx)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 transition flex-shrink-0"
+                    >
+                      <Trash2 size={18} />
+                    </motion.button>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Totals & Checkout */}
+          {cart.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="space-y-3 border-t border-white/10 pt-4 sticky bottom-0 bg-gradient-to-t from-black to-transparent -mx-4 md:-mx-6 px-4 md:px-6 py-4"
+            >
+              {/* Subtotal */}
+              <div className="flex justify-between text-gray-400 text-sm">
+                <span>قبل الخصم:</span>
+                <span className="font-semibold">{subtotal.toFixed(2)} ج.م</span>
+              </div>
+
+              {/* Discount */}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={discount}
+                  onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500"
+                />
+                <select
+                  value={discountType}
+                  onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                  className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+                >
+                  <option value="fixed">ج.م</option>
+                  <option value="percentage">%</option>
+                </select>
+              </div>
+
+              {/* Final Total */}
+              <div className="flex justify-between pt-2 border-t border-white/10">
+                <span className="text-white font-bold">الإجمالي</span>
+                <span className="text-2xl font-bold text-gold-400">{total.toFixed(2)}</span>
+              </div>
+
+              {/* Payment Method */}
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+              >
+                <option value="cash">💵 نقد</option>
+                <option value="card">💳 بطاقة</option>
+                <option value="wallet">📱 محفظة</option>
+              </select>
+
+              {/* Barber Selection */}
+              <select
+                value={selectedBarber?.id || ''}
+                onChange={(e) => {
+                  const barber = clients.find(c => c.id === e.target.value)
+                  setSelectedBarber(barber || null)
+                }}
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm"
+              >
+                <option value="">اختر الحلاق (اختياري)</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    ✂️ {client.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Checkout Button - Large and Prominent */}
+              <motion.button
+                onClick={handleCompleteSale}
+                disabled={isCheckingOut || !selectedClient || cart.length === 0}
+                whileHover={!isCheckingOut && selectedClient ? { scale: 1.02, y: -2 } : {}}
+                whileTap={!isCheckingOut && selectedClient ? { scale: 0.98 } : {}}
+                className="w-full p-4 bg-gradient-to-r from-gold-400 to-yellow-400 text-black font-bold text-base md:text-lg rounded-xl hover:shadow-2xl hover:shadow-gold-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition transform"
+              >
+                {isCheckingOut ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
+                    />
+                    جاري المعالجة...
+                  </span>
+                ) : (
+                  '✅ إتمام البيع'
+                )}
+              </motion.button>
+            </motion.div>
+          )}
+        </motion.div>
+      </div>
+
+      {/* Client Search Modal */}
+      <Modal
+        isOpen={showClientSearch}
+        onClose={() => {
+          setShowClientSearch(false)
+          setSearchQuery('')
+        }}
+        title="🔍 اختر العميل"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="relative">
+            <Search size={18} className="absolute right-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="ابحث باسم أو هاتف"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+              className="w-full pl-4 pr-10 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500"
+            />
+          </div>
+
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            <AnimatePresence mode="popLayout">
+              {searchResults.length > 0 ? (
+                searchResults.map(({ item }: any, idx: number) => (
+                  <motion.button
+                    key={item.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => {
+                      setSelectedClient(item)
+                      setShowClientSearch(false)
+                      setSearchQuery('')
+                    }}
+                    whileHover={{ scale: 1.02, x: 8 }}
+                    className="w-full p-4 bg-white/5 hover:bg-gold-400/10 border border-white/10 hover:border-gold-400/30 rounded-lg text-left transition"
+                  >
+                    <p className="text-white font-semibold">{item.name}</p>
+                    <p className="text-xs text-gray-400">📞 {item.phone}</p>
+                    <p className="text-xs text-gold-400 mt-1">
+                      {item.totalVisits} زيارات • {item.totalSpent?.toFixed(2)} ج.م
+                    </p>
+                  </motion.button>
+                ))
+              ) : searchQuery ? (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center text-gray-400 py-6"
+                >
+                  لم يتم العثور على عملاء
+                </motion.p>
+              ) : (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center text-gray-400 py-6"
+                >
+                  ابدأ البحث...
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Receipt Modal */}
+      <Modal
+        isOpen={showReceipt}
+        onClose={() => {
+          setShowReceipt(false)
+          setCompletedTransaction(null)
+        }}
+        title="🧾 الإيصال"
+        size="md"
+      >
+        {completedTransaction && (
+          <div className="space-y-4">
+            {/* Receipt Preview */}
+            <div className="bg-white text-black p-6 rounded-lg shadow-xl text-center text-sm" style={{ fontFamily: 'Arial, sans-serif' }}>
+              <div className="font-bold mb-2">متجر الحلاق</div>
+              <div className="text-xs text-gray-600 mb-4">إيصال الدفع</div>
+              
+              <div className="border-b border-gray-300 pb-3 mb-3 text-xs">
+                <div>{completedTransaction.date}</div>
+                <div>{completedTransaction.time}</div>
+              </div>
+
+              <div className="text-left mb-3">
+                <div className="text-xs"><strong>العميل:</strong> {completedTransaction.clientName}</div>
+                <div className="text-xs"><strong>الهاتف:</strong> {completedTransaction.clientPhone}</div>
+              </div>
+
+              <div className="border-b border-gray-300 pb-3 mb-3">
+                <div className="text-xs font-bold mb-2">الخدمات:</div>
+                {completedTransaction.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-xs mb-1">
+                    <span>{item.name}</span>
+                    <span>{item.price} ج.م</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-xs mb-3">
+                <div className="flex justify-between mb-1">
+                  <span>الإجمالي:</span>
+                  <span>{completedTransaction.subtotal.toFixed(2)} ج.م</span>
+                </div>
+                {completedTransaction.discount > 0 && (
+                  <div className="flex justify-between text-red-600">
+                    <span>الخصم:</span>
+                    <span>-{completedTransaction.discount.toFixed(2)} ج.م</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-b border-gray-300 py-2 mb-3">
+                <div className="text-lg font-bold">
+                  {completedTransaction.total.toFixed(2)} ج.م
+                </div>
+              </div>
+
+              <div className="text-xs mb-3">
+                <strong>طريقة الدفع:</strong> {getPaymentLabel().replace(/[^\u0600-\u06FF\w\s]/g, '')}
+              </div>
+
+              <div className="text-xs text-gray-600">
+                <div>شكرا لزيارتك</div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              {/* Print Button - Large and Primary */}
+              <motion.button
+                onClick={handlePrint}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-lg hover:shadow-lg hover:shadow-blue-500/40 transition"
+              >
+                <Printer size={20} />
+                <span>طباعة الإيصال</span>
+              </motion.button>
+
+              {/* New Transaction Button */}
+              <motion.button
+                onClick={() => {
+                  setShowReceipt(false)
+                  setCompletedTransaction(null)
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-gold-400 to-yellow-400 text-black font-bold rounded-lg hover:shadow-lg hover:shadow-gold-400/40 transition"
+              >
+                <Check size={20} />
+                <span>معاملة جديدة</span>
+              </motion.button>
+            </div>
+
+            {/* Info Text */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center text-sm text-blue-900">
+              <p>تم حفظ الإيصال بنجاح في السجلات</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}

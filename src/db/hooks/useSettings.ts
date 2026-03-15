@@ -1,0 +1,124 @@
+import { useState, useEffect } from 'react'
+import { supabase, Settings } from '../supabase'
+import toast from 'react-hot-toast'
+
+export const useSettings = () => {
+  const [settings, setSettings] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('settings')
+        .select('*')
+
+      if (error) throw error
+      
+      const settingsMap: Record<string, any> = {}
+      data?.forEach((item: Settings) => {
+        settingsMap[item.key] = item.value
+      })
+      
+      setSettings(settingsMap)
+      setError(null)
+    } catch (err: any) {
+      setError(err.message)
+      toast.error(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSettings()
+  }, [])
+
+  const updateSetting = async (key: string, value: any) => {
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({
+          key,
+          value,
+          updatedAt: new Date().toISOString(),
+        })
+
+      if (error) throw error
+      
+      setSettings((prev) => ({
+        ...prev,
+        [key]: value,
+      }))
+      
+      toast.success('Setting updated')
+      return true
+    } catch (err: any) {
+      toast.error(err.message)
+      throw err
+    }
+  }
+
+  const getSetting = (key: string, defaultValue?: any) => {
+    return settings[key] ?? defaultValue
+  }
+
+  const getBarbershipName = () => {
+    return getSetting('barbershipName', 'My Barbershop')
+  }
+
+  const getVIPThreshold = () => {
+    return getSetting('vipThreshold', { type: 'visits', value: 10 })
+  }
+
+  const getTheme = () => {
+    return getSetting('theme', 'dark')
+  }
+
+  const getLanguage = () => {
+    return getSetting('language', 'ar')
+  }
+
+  const initializeSettings = async () => {
+    const defaultSettings = {
+      barbershipName: 'My Barbershop',
+      barbershipAddress: '',
+      barbershipPhone: '',
+      language: localStorage.getItem('language') || 'ar',
+      theme: localStorage.getItem('theme') || 'dark',
+      vipThreshold: { type: 'visits', value: 10 },
+      numberFormat: 'western',
+    }
+
+    try {
+      for (const [key, value] of Object.entries(defaultSettings)) {
+        const existing = await supabase
+          .from('settings')
+          .select('key')
+          .eq('key', key)
+          .single()
+
+        if (!existing.data) {
+          await updateSetting(key, value)
+        }
+      }
+    } catch (err: any) {
+      console.error('Error initializing settings:', err)
+    }
+  }
+
+  return {
+    settings,
+    loading,
+    error,
+    fetchSettings,
+    updateSetting,
+    getSetting,
+    getBarbershipName,
+    getVIPThreshold,
+    getTheme,
+    getLanguage,
+    initializeSettings,
+  }
+}

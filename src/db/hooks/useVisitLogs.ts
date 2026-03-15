@@ -1,0 +1,90 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '../supabase'
+import toast from 'react-hot-toast'
+
+export interface VisitLog {
+  id: string
+  clientId: string
+  clientName: string
+  visitDate: string
+  visitTime: string
+  servicesCount: number
+  totalSpent: number
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export const useVisitLogs = () => {
+  const [visitLogs, setVisitLogs] = useState<VisitLog[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchVisitLogs = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('visit_logs')
+        .select('*')
+        .order('createdAt', { ascending: false })
+
+      if (error) throw error
+      setVisitLogs(data || [])
+      setError(null)
+    } catch (err: any) {
+      setError(err.message)
+      toast.error(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchVisitLogs()
+  }, [])
+
+  const addVisitLog = async (log: Omit<VisitLog, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('visit_logs')
+        .insert({
+          ...log,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .select()
+
+      if (error) throw error
+      await fetchVisitLogs()
+      return data?.[0]
+    } catch (err: any) {
+      toast.error(err.message)
+      throw err
+    }
+  }
+
+  const getClientVisitLogs = async (clientId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('visit_logs')
+        .select('*')
+        .eq('clientId', clientId)
+        .order('visitDate', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    } catch (err: any) {
+      toast.error(err.message)
+      throw err
+    }
+  }
+
+  return {
+    visitLogs,
+    loading,
+    error,
+    fetchVisitLogs,
+    addVisitLog,
+    getClientVisitLogs,
+  }
+}

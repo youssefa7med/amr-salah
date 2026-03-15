@@ -1,0 +1,342 @@
+import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { GlassCard } from '../components/ui/GlassCard'
+import { Modal } from '../components/ui/Modal'
+import { Badge } from '../components/ui/Badge'
+import { useClients } from '../db/hooks/useClients'
+import { useVisitLogs, VisitLog } from '../db/hooks/useVisitLogs'
+import { motion } from 'framer-motion'
+import { Trash2, Edit2, Plus, Calendar, Clock } from 'lucide-react'
+import toast from 'react-hot-toast'
+
+export const Clients: React.FC = () => {
+  const { t } = useTranslation()
+  const { clients, addClient, updateClient, deleteClient } = useClients()
+  const { getClientVisitLogs } = useVisitLogs()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedClientForDetail, setSelectedClientForDetail] = useState<any>(null)
+  const [clientVisitLogs, setClientVisitLogs] = useState<VisitLog[]>([])
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [formData, setFormData] = useState({ name: '', phone: '', birthday: '' })
+  const [editFormData, setEditFormData] = useState({ name: '', phone: '', birthday: '' })
+
+  // Fetch visit logs when opening detail modal
+  useEffect(() => {
+    if (isDetailModalOpen && selectedClientForDetail?.id) {
+      const fetchLogs = async () => {
+        try {
+          const logs = await getClientVisitLogs(selectedClientForDetail.id)
+          setClientVisitLogs(logs)
+        } catch (err) {
+          toast.error('Failed to load visit history')
+        }
+      }
+      fetchLogs()
+    }
+  }, [isDetailModalOpen, selectedClientForDetail, getClientVisitLogs])
+
+  const handleAddClient = async () => {
+    if (!formData.name || !formData.phone) {
+      toast.error(t('errors.required_field'))
+      return
+    }
+
+    try {
+      await addClient({
+        name: formData.name,
+        phone: formData.phone,
+        birthday: formData.birthday,
+        totalVisits: 0,
+        totalSpent: 0,
+        isVIP: false,
+      })
+      toast.success(t('notifications.client_added'))
+      setFormData({ name: '', phone: '', birthday: '' })
+      setIsModalOpen(false)
+    } catch (err) {
+      toast.error(t('errors.database_error'))
+    }
+  }
+
+  const handleEditClick = (client: Client) => {
+    setEditingClientId(client.id!)
+    setEditFormData({
+      name: client.name,
+      phone: client.phone,
+      birthday: client.birthday || '',
+    })
+    setIsEditModalOpen(true)
+  }
+
+  const handleUpdateClient = async () => {
+    if (!editFormData.name || !editFormData.phone) {
+      toast.error(t('errors.required_field'))
+      return
+    }
+
+    try {
+      await updateClient(editingClientId!, {
+        name: editFormData.name,
+        phone: editFormData.phone,
+        birthday: editFormData.birthday,
+      })
+      toast.success(t('notifications.client_updated'))
+      setEditingClientId(null)
+      setEditFormData({ name: '', phone: '', birthday: '' })
+      setIsEditModalOpen(false)
+    } catch (err) {
+      toast.error(t('errors.database_error'))
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteClient(id)
+      toast.success(t('notifications.client_deleted'))
+    } catch (err) {
+      toast.error(t('errors.database_error'))
+    }
+  }
+
+  const handleViewDetails = (client: any) => {
+    setSelectedClientForDetail(client)
+    setIsDetailModalOpen(true)
+  }
+
+  const filteredClients = searchQuery
+    ? clients.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery))
+    : clients
+
+  return (
+    <div className="space-y-6">
+      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">{t('clients.title')}</h1>
+        <motion.button
+          onClick={() => setIsModalOpen(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex items-center gap-2 px-4 py-2 bg-gold-400/20 text-gold-400 border border-gold-400/20 rounded-lg"
+        >
+          <Plus size={20} />
+          {t('clients.add_client')}
+        </motion.button>
+      </motion.div>
+
+      {/* Search */}
+      <GlassCard>
+        <input
+          type="text"
+          placeholder={t('common.search')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full"
+        />
+      </GlassCard>
+
+      {/* Clients List */}
+      <div className="grid gap-3">
+        {filteredClients.map((client, idx) => (
+          <motion.div
+            key={client.id || idx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05}}
+          >
+            <GlassCard 
+              onClick={() => handleViewDetails(client)}
+              className="cursor-pointer"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-white font-semibold hover:text-gold-400 transition">{client.name}</p>
+                  <p className="text-xs text-gray-400">{client.phone}</p>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {client.isVIP && <Badge label="VIP" variant="gold" />}
+                    <Badge label={`${client.totalVisits} visits`} variant="info" />
+                    <Badge label={`${client.totalSpent.toFixed(2)} ج.م`} variant="success" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditClick(client)
+                    }}
+                    className="p-2 hover:bg-white/10 rounded transition"
+                    title="Edit"
+                  >
+                    <Edit2 size={18} className="text-gray-400" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(client.id!)
+                    }}
+                    className="p-2 hover:bg-red-500/10 rounded transition"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} className="text-red-400" />
+                  </button>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Add Client Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={t('clients.add_client')}
+      >
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder={t('common.name')}
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          />
+          <input
+            type="tel"
+            placeholder={t('common.phone')}
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+          />
+          <input
+            type="date"
+            value={formData.birthday}
+            onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+          />
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 px-4 py-3 border border-white/20 rounded-lg hover:bg-white/5 transition font-medium text-gray-300"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleAddClient}
+              className="flex-1 px-4 py-3 bg-gold-400/20 text-gold-400 border border-gold-400/30 rounded-lg hover:bg-gold-400/30 transition font-bold"
+            >
+              {t('common.save')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Client Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingClientId(null)
+          setEditFormData({ name: '', phone: '', birthday: '' })
+        }}
+        title={t('clients.edit_client')}
+      >
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder={t('common.name')}
+            value={editFormData.name}
+            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+          />
+          <input
+            type="tel"
+            placeholder={t('common.phone')}
+            value={editFormData.phone}
+            onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+          />
+          <input
+            type="date"
+            value={editFormData.birthday}
+            onChange={(e) => setEditFormData({ ...editFormData, birthday: e.target.value })}
+          />
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={() => {
+                setIsEditModalOpen(false)
+                setEditingClientId(null)
+                setEditFormData({ name: '', phone: '', birthday: '' })
+              }}
+              className="flex-1 px-4 py-3 border border-white/20 rounded-lg hover:bg-white/5 transition font-medium text-gray-300"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={handleUpdateClient}
+              className="flex-1 px-4 py-3 bg-gold-400/20 text-gold-400 border border-gold-400/30 rounded-lg hover:bg-gold-400/30 transition font-bold"
+            >
+              {t('common.save')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Client Detail Modal with Visit History */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false)
+          setSelectedClientForDetail(null)
+          setClientVisitLogs([])
+        }}
+        title={`${selectedClientForDetail?.name} - ${t('clients.visit_history')}`}
+        size="lg"
+      >
+        {selectedClientForDetail && (
+          <div className="space-y-6">
+            {/* Client Summary */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-white/5 p-4 rounded-lg">
+                <p className="text-xs text-gray-400 mb-1">Total Visits</p>
+                <p className="text-2xl font-bold text-gold-400">{selectedClientForDetail.totalVisits}</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-lg">
+                <p className="text-xs text-gray-400 mb-1">Total Spent</p>
+                <p className="text-2xl font-bold text-gold-400">{selectedClientForDetail.totalSpent.toFixed(2)} ج.م</p>
+              </div>
+              <div className="bg-white/5 p-4 rounded-lg">
+                <p className="text-xs text-gray-400 mb-1">Status</p>
+                <p className="text-2xl font-bold text-gold-400">{selectedClientForDetail.isVIP ? 'VIP ⭐' : 'Regular'}</p>
+              </div>
+            </div>
+
+            {/* Visit History */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">Visit Logs</h3>
+              {clientVisitLogs.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {clientVisitLogs.map((log, idx) => (
+                    <div key={idx} className="bg-white/5 p-4 rounded-lg border border-white/10">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={16} className="text-gold-400" />
+                          <span className="text-white font-semibold">{log.visitDate}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock size={16} className="text-gold-400" />
+                          <span className="text-gray-300">{log.visitTime}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-400 mb-2">{log.servicesCount} services • {log.totalSpent.toFixed(2)} ج.م</p>
+                      {log.notes && <p className="text-xs text-gray-500">{log.notes}</p>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <p>No visit history yet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
