@@ -9,6 +9,7 @@ import { useVisitLogs } from '../db/hooks/useVisitLogs'
 import { useServiceVariants } from '../db/hooks/useServiceVariants'
 import { useSettings } from '../db/hooks/useSettings'
 import { useBarbers } from '../db/hooks/useBarbers'
+import { useBookings } from '../db/hooks/useBookings'
 import { appEmitter } from '../utils/eventEmitter'
 import { getEgyptDateString, getEgyptTimeString } from '../utils/egyptTime'
 import toast from 'react-hot-toast'
@@ -43,6 +44,7 @@ export const POS: React.FC = () => {
   const { getVariantsByServiceId } = useServiceVariants()
   const { getSetting } = useSettings()
   const { barbers } = useBarbers()
+  const { getTodayBookings, updateBooking } = useBookings()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedClient, setSelectedClient] = useState<any>(null)
@@ -174,6 +176,29 @@ export const POS: React.FC = () => {
         totalSpent: total,
         notes: `${cart.length} services - ${paymentMethod}`,
       })
+
+      // Auto-complete bookings: Update today's pending/ongoing bookings for this client to "completed"
+      try {
+        const todayBookings = getTodayBookings()
+        const clientBookingsToday = todayBookings.filter((b: any) => 
+          b.clientId === selectedClient.id && 
+          (b.status === 'pending' || b.status === 'ongoing')
+        )
+
+        // Update each booking to completed
+        for (const booking of clientBookingsToday) {
+          if (booking.id) {
+            await updateBooking(booking.id, { status: 'completed' })
+          }
+        }
+
+        if (clientBookingsToday.length > 0) {
+          console.log(`✅ تم تحديث ${clientBookingsToday.length} حجز إلى مكتمل`)
+        }
+      } catch (bookingErr) {
+        console.error('Error updating bookings:', bookingErr)
+        // Don't fail the transaction if booking update fails
+      }
 
       // Show receipt
       setCompletedTransaction({
