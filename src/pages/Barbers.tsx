@@ -7,6 +7,7 @@ import { useTransactions } from '../db/hooks/useTransactions'
 import { motion } from 'framer-motion'
 import { Trash2, Edit2, Plus, DollarSign, Users, TrendingUp } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { appEmitter } from '../utils/eventEmitter'
 
 interface BarberStats {
   clientCount: number
@@ -18,7 +19,7 @@ interface BarberStats {
 export const Barbers: React.FC = () => {
   const { t } = useTranslation()
   const { barbers, addBarber, updateBarber, deleteBarber } = useBarbers()
-  const { transactions } = useTransactions()
+  const { transactions, fetchTransactions } = useTransactions()
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingBarberId, setEditingBarberId] = useState<string | null>(null)
@@ -26,6 +27,25 @@ export const Barbers: React.FC = () => {
   const [barberStats, setBarberStats] = useState<{
     [barberId: string]: BarberStats
   }>({})
+
+  // Load transactions on mount
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
+
+  // Listen for new transactions and refresh
+  useEffect(() => {
+    const handleNewTransaction = async () => {
+      console.log('New transaction detected, refreshing data...')
+      await fetchTransactions()
+    }
+
+    appEmitter.on('transaction:created', handleNewTransaction)
+
+    return () => {
+      appEmitter.off('transaction:created', handleNewTransaction)
+    }
+  }, [fetchTransactions])
 
   // Calculate barber statistics
   useEffect(() => {

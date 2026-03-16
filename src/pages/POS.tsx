@@ -154,6 +154,7 @@ export const POS: React.FC = () => {
         discountType,
         total,
         paymentMethod: paymentMethod as 'cash' | 'card' | 'wallet',
+        barberId: selectedBarber?.id || undefined,
       })
 
       // Update client
