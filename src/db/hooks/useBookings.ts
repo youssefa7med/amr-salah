@@ -175,6 +175,11 @@ export const useBookings = () => {
     booking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt' | 'queueNumber'>
   ) => {
     try {
+      // Validate bookingTime exists
+      if (!booking.bookingTime || booking.bookingTime.trim() === '') {
+        throw new Error('bookingTime is required and cannot be empty')
+      }
+
       // Check if time slot is available
       if (!isTimeSlotAvailable(booking.bookingTime, booking.barberId)) {
         const errorMsg = 'هذا الموعد محجوز بالفعل. اختر موعد آخر'
@@ -187,6 +192,12 @@ export const useBookings = () => {
         booking.bookingTime,
         booking.barberId
       )
+
+      console.log('Adding booking with:', {
+        clientId: booking.clientId,
+        bookingTime: booking.bookingTime,
+        barberId: booking.barberId || recommendedBarberId,
+      })
 
       const newBooking = {
         clientid: booking.clientId,

@@ -274,14 +274,15 @@ export const Bookings: React.FC = () => {
           clientId: formData.clientId,
           clientName: formData.clientName,
           clientPhone: formData.clientPhone,
-          barberid: formData.barberId || undefined,
-          barbername: formData.barberId
+          barberId: formData.barberId || undefined,
+          barberName: formData.barberId
             ? barbers?.find((b) => b.id === formData.barberId)?.name
             : undefined,
-          servicetype: formData.serviceType || undefined,
-          bookingtime: bookingTime,
+          serviceType: formData.serviceType || undefined,
+          bookingTime: bookingTime,
           duration: formData.duration,
           status: 'pending',
+          queueNumber: 0, // Will be calculated by addBooking
         } as any)
         toast.success('✅ تم إنشاء الحجز بنجاح')
       }
