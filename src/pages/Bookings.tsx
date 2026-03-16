@@ -16,6 +16,7 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle2,
+  Zap,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -51,6 +52,8 @@ export const Bookings: React.FC = () => {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [previewInfo, setPreviewInfo] = useState<any>(null)
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
+  const [workingHours, setWorkingHours] = useState({ start: 9, end: 20 }) // 9 AM to 8 PM
+  const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false)
 
   const [formData, setFormData] = useState<NewBooking>({
     searchQuery: '',
@@ -67,36 +70,39 @@ export const Bookings: React.FC = () => {
   const todayBookings = getTodayBookings()
   const upcomingBookings = getUpcomingBookings()
 
-  // حساب الأوقات المتاحة والمشغولة
+  // حساب الأوقات المتاحة والمشغولة لحلاق محدد
   const calculateAvailableSlots = (date: string, selectedBarberId?: string) => {
     const slots: TimeSlot[] = []
-    const workingHours = { start: 9, end: 20 } // 9 AM to 8 PM
     const intervalMinutes = 30
 
-    // الحجوزات في هذا اليوم
-    const dayBookings = getTodayBookings().filter(
-      (b: any) => new Date(b.bookingtime).toLocaleDateString('en-CA') === date
-    )
+    // الحجوزات في هذا اليوم للحلاق المحدد
+    const dayBookings = getTodayBookings().filter((b: any) => {
+      const isCorrectDate = new Date(b.bookingtime).toLocaleDateString('en-CA') === date
+      const isCorrectBarber = !selectedBarberId || b.barberid === selectedBarberId
+      return isCorrectDate && isCorrectBarber
+    })
 
     for (let hour = workingHours.start; hour < workingHours.end; hour++) {
       for (let min = 0; min < 60; min += intervalMinutes) {
         const timeStr = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`
         const timeMs = hour * 60 + min
 
-        // تحقق من التضاربات
+        // تحقق من التضاربات (30 دقيقة بافر)
         const hasConflict = dayBookings.some((booking: any) => {
           const bookingHour = parseInt(booking.bookingtime.split('T')[1].substring(0, 2))
           const bookingMin = parseInt(booking.bookingtime.split('T')[1].substring(3, 5))
           const bookingTimeMs = bookingHour * 60 + bookingMin
-
-          const conflict = Math.abs(timeMs - bookingTimeMs) < 30 // 30 دقيقة بافر
-          return !selectedBarberId || conflict
+          return Math.abs(timeMs - bookingTimeMs) < 30
         })
 
         slots.push({
           time: timeStr,
           available: !hasConflict,
           reason: hasConflict ? 'محجوز بالفعل' : undefined,
+          bookingCount: dayBookings.filter((b: any) => {
+            const bHour = parseInt(b.bookingtime.split('T')[1].substring(0, 2))
+            return bHour === hour
+          }).length,
         })
       }
     }
@@ -133,6 +139,36 @@ export const Bookings: React.FC = () => {
     }
   }, [formData.bookingTime, formData.bookingDate])
 
+  // اختيار ذكي - إيجاد أفضل حلاق متاح
+  const findBestBarberOption = (date: string): { barberId: string; barberName: string; firstAvailableTime: string; earliestHour: number } | null => {
+    if (!barbers || barbers.length === 0) return null
+
+    let bestOption: { barberId: string; barberName: string; firstAvailableTime: string; earliestHour: number } | null = null
+    let earliestHour = 24
+
+    barbers?.forEach((barber) => {
+      if (!barber.id) return
+      
+      const slots = calculateAvailableSlots(date, barber.id)
+      const firstAvailable = slots.find((s) => s.available)
+
+      if (firstAvailable) {
+        const hour = parseInt(firstAvailable.time.split(':')[0])
+        if (hour < earliestHour) {
+          earliestHour = hour
+          bestOption = {
+            barberId: barber.id,
+            barberName: barber.name || '',
+            firstAvailableTime: firstAvailable.time,
+            earliestHour: hour,
+          }
+        }
+      }
+    })
+
+    return bestOption
+  }
+
   // Search for clients
   const handleClientSearch = (query: string) => {
     setFormData({ ...formData, searchQuery: query })
@@ -166,7 +202,12 @@ export const Bookings: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // سلسلة من الفحوصات بتفاصيل واضحة
+    // Order: Barber → Client → Date/Time
+    if (!formData.barberId) {
+      toast.error('❌ الرجاء اختيار الحلاق أولاً')
+      return
+    }
+
     if (!formData.clientId) {
       toast.error('❌ الرجاء البحث عن العميل واختياره من القائمة')
       return
@@ -320,29 +361,41 @@ export const Bookings: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-white">الحجوزات</h1>
-        <motion.button
-          onClick={() => {
-            setEditingId(null)
-            setFormData({
-              searchQuery: '',
-              clientId: null,
-              clientName: '',
-              clientPhone: '',
-              barberId: null,
-              serviceType: '',
-              bookingDate: getEgyptDateString(),
-              bookingTime: '10:00',
-              duration: 30,
-            })
-            setShowModal(true)
-          }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 bg-gold-400 text-dark px-6 py-2 rounded-lg font-semibold hover:bg-gold-500 transition"
-        >
-          <Plus size={20} />
-          حجز جديد
-        </motion.button>
+        <div className="flex gap-2">
+          <motion.button
+            onClick={() => setShowWorkingHoursModal(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 bg-blue-500/20 text-blue-300 px-4 py-2 rounded-lg font-semibold hover:bg-blue-500/30 transition border border-blue-500/30"
+            title="اضبط ساعات العمل"
+          >
+            <Clock size={18} />
+            {workingHours.start}:00 - {workingHours.end}:00
+          </motion.button>
+          <motion.button
+            onClick={() => {
+              setEditingId(null)
+              setFormData({
+                searchQuery: '',
+                clientId: null,
+                clientName: '',
+                clientPhone: '',
+                barberId: null,
+                serviceType: '',
+                bookingDate: getEgyptDateString(),
+                bookingTime: '10:00',
+                duration: 30,
+              })
+              setShowModal(true)
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 bg-gold-400 text-dark px-6 py-2 rounded-lg font-semibold hover:bg-gold-500 transition"
+          >
+            <Plus size={20} />
+            حجز جديد
+          </motion.button>
+        </div>
       </div>
 
       {/* View Mode Tabs */}
@@ -537,6 +590,69 @@ export const Bookings: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Barber Selection - FIRST STEP */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    ✂️ اختر الحلاق *
+                  </label>
+                  <div className="space-y-2">
+                    <select
+                      value={formData.barberId || ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setFormData({ ...formData, barberId: e.target.value })
+                          setAvailableSlots([]) // إعادة تعيين الأوقات
+                        }
+                      }}
+                      className="w-full bg-white/10 text-white px-4 py-2 rounded-lg border-2 border-white/20 focus:border-gold-400 focus:outline-none"
+                    >
+                      <option value="">-- اختر الحلاق --</option>
+                      {barbers
+                        ?.filter((b) => b.active)
+                        .map((barber) => (
+                          <option key={barber.id} value={barber.id}>
+                            ✂️ {barber.name}
+                          </option>
+                        ))}
+                    </select>
+
+                    {/* Smart Choice Button */}
+                    {formData.bookingDate && !formData.barberId && (
+                      <motion.button
+                        type="button"
+                        onClick={() => {
+                          const best = findBestBarberOption(formData.bookingDate)
+                          if (best) {
+                            setFormData({
+                              ...formData,
+                              barberId: best.barberId,
+                              bookingTime: best.firstAvailableTime,
+                            })
+                            toast.success(
+                              `⚡ اختيار ذكي: ${best.barberName} متاح الساعة ${best.firstAvailableTime}`
+                            )
+                          } else {
+                            toast.error('❌ لا توجد أوقات متاحة في هذا اليوم')
+                          }
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        className="w-full bg-purple-500/20 text-purple-300 px-4 py-2 rounded-lg border-2 border-purple-500/30 hover:bg-purple-500/30 transition font-semibold flex items-center justify-center gap-2"
+                      >
+                        <Zap size={16} />
+                        اختيار ذكي
+                      </motion.button>
+                    )}
+                  </div>
+
+                  {formData.barberId && (
+                    <div className="mt-2 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <p className="text-green-400 text-sm font-semibold">
+                        ✓ {barbers?.find((b) => b.id === formData.barberId)?.name}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Client Search */}
                 <div>
                   <label className="block text-sm font-semibold text-white mb-2">
@@ -692,27 +808,6 @@ export const Bookings: React.FC = () => {
                   />
                 </div>
 
-                {/* Barber Selection (Optional) */}
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">
-                    اختر الحلاق (اختياري)
-                  </label>
-                  <select
-                    value={formData.barberId || ''}
-                    onChange={(e) => setFormData({ ...formData, barberId: e.target.value || null })}
-                    className="w-full bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-gold-400 focus:outline-none"
-                  >
-                    <option value="">نظام ذكي - اختيار تلقائي</option>
-                    {barbers
-                      ?.filter((b) => b.active)
-                      .map((barber) => (
-                        <option key={barber.id} value={barber.id}>
-                          ✂️ {barber.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
                 {/* Service Type (Optional) */}
                 <div>
                   <label className="block text-sm font-semibold text-white mb-2">
@@ -748,6 +843,104 @@ export const Bookings: React.FC = () => {
                   </motion.button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Working Hours Configuration Modal */}
+      <AnimatePresence>
+        {showWorkingHoursModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowWorkingHoursModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 shadow-2xl max-w-md w-full border border-white/10"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-white">⏰ ساعات العمل</h2>
+                <button
+                  onClick={() => setShowWorkingHoursModal(false)}
+                  className="p-2 hover:bg-white/10 rounded transition"
+                >
+                  <X size={20} className="text-gray-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    وقت البداية (من الساعة)
+                  </label>
+                  <select
+                    value={workingHours.start}
+                    onChange={(e) =>
+                      setWorkingHours({
+                        ...workingHours,
+                        start: Math.min(parseInt(e.target.value), workingHours.end),
+                      })
+                    }
+                    className="w-full bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-gold-400 focus:outline-none"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {String(i).padStart(2, '0')}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    وقت النهاية (إلى الساعة)
+                  </label>
+                  <select
+                    value={workingHours.end}
+                    onChange={(e) =>
+                      setWorkingHours({
+                        ...workingHours,
+                        end: Math.max(parseInt(e.target.value), workingHours.start),
+                      })
+                    }
+                    className="w-full bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:border-gold-400 focus:outline-none"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>
+                        {String(i).padStart(2, '0')}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-sm text-blue-300">
+                  💡 الساعات من {String(workingHours.start).padStart(2, '0')}:00 إلى{' '}
+                  {String(workingHours.end).padStart(2, '0')}:00 ({workingHours.end - workingHours.start}{' '}
+                  ساعة عمل)
+                </div>
+
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    toast.success(
+                      `✅ تم تحديث ساعات العمل: ${String(workingHours.start).padStart(2, '0')}:00 - ${String(workingHours.end).padStart(2, '0')}:00`
+                    )
+                    setShowWorkingHoursModal(false)
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-gold-400 text-dark px-6 py-3 rounded-lg font-semibold hover:bg-gold-500 transition mt-6"
+                >
+                  حفظ ساعات العمل
+                </motion.button>
+              </div>
             </motion.div>
           </motion.div>
         )}
