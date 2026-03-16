@@ -1,4 +1,4 @@
-import { supabase, Client, Service } from '../db/supabase'
+import { supabase, Client, Service, Booking } from '../db/supabase'
 
 export const seedSampleData = async () => {
   try {
@@ -171,6 +171,74 @@ export const seedSampleData = async () => {
           updatedAt: new Date().toISOString(),
         })
       }
+    }
+
+    // Insert sample bookings if table exists
+    try {
+      const { count: bookingCount } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+
+      if ((bookingCount ?? 0) === 0) {
+        // Get first client for demo bookings
+        const { data: clients } = await supabase.from('clients').select('*').limit(5)
+        
+        if (clients && clients.length > 0) {
+          const today = new Date()
+          const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
+          
+          const sampleBookings: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>[] = [
+            {
+              clientId: clients[0].id,
+              clientName: clients[0].name,
+              clientPhone: clients[0].phone,
+              barberId: undefined,
+              barberName: undefined,
+              serviceType: 'حلاقة عادية',
+              bookingTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0).toISOString(),
+              duration: 30,
+              queueNumber: 1,
+              status: 'pending',
+            },
+            {
+              clientId: clients[1]?.id || clients[0].id,
+              clientName: clients[1]?.name || clients[0].name,
+              clientPhone: clients[1]?.phone || clients[0].phone,
+              barberId: undefined,
+              barberName: undefined,
+              serviceType: 'حلاقة + لحية',
+              bookingTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 45).toISOString(),
+              duration: 45,
+              queueNumber: 2,
+              status: 'pending',
+            },
+            {
+              clientId: clients[2]?.id || clients[0].id,
+              clientName: clients[2]?.name || clients[0].name,
+              clientPhone: clients[2]?.phone || clients[0].phone,
+              barberId: undefined,
+              barberName: undefined,
+              serviceType: 'حلاقة عصرية',
+              bookingTime: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 14, 30).toISOString(),
+              duration: 30,
+              queueNumber: 1,
+              status: 'pending',
+            },
+          ]
+
+          for (const booking of sampleBookings) {
+            await supabase.from('bookings').insert({
+              ...booking,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            })
+          }
+          console.log('✅ Sample bookings inserted')
+        }
+      }
+    } catch (err) {
+      // Bookings table may not exist yet
+      console.log('ℹ️ Bookings table not found, skipping seed data')
     }
 
     console.log('✅ Sample data initialized successfully')

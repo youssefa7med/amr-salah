@@ -81,3 +81,20 @@ export interface Barber {
   createdAt: string
   updatedAt: string
 }
+
+export interface Booking {
+  id?: string
+  clientId: string
+  clientName: string
+  clientPhone: string
+  barberId?: string
+  barberName?: string
+  serviceType?: string
+  bookingTime: string // ISO date string
+  duration?: number // in minutes
+  queueNumber: number
+  status: 'pending' | 'ongoing' | 'completed' | 'cancelled'
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}

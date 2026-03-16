@@ -10,6 +10,7 @@ import { Analytics } from './pages/Analytics'
 import { Settings } from './pages/Settings'
 import { DailyLogs } from './pages/DailyLogs'
 import { Barbers } from './pages/Barbers'
+import { Bookings } from './pages/Bookings'
 import { useTheme } from './hooks/useTheme'
 import { useLanguage } from './hooks/useLanguage'
 import { seedSampleData } from './utils/seedData'
@@ -45,6 +46,8 @@ function App() {
         return <Clients />
       case '/barbers':
         return <Barbers />
+      case '/bookings':
+        return <Bookings />
       case '/services':
         return <Services />
       case '/logs':
