@@ -189,16 +189,24 @@ export const useBookings = () => {
       )
 
       const newBooking = {
-        ...booking,
-        barberId: booking.barberId || recommendedBarberId,
-        queueNumber,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        clientid: booking.clientId,
+        clientname: booking.clientName,
+        clientphone: booking.clientPhone,
+        barberid: booking.barberId || recommendedBarberId,
+        barbername: booking.barberName,
+        servicetype: booking.serviceType,
+        bookingtime: booking.bookingTime,
+        duration: booking.duration,
+        queuenumber: queueNumber,
+        status: 'pending',
+        notes: booking.notes,
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
       }
 
       const { data, error } = await supabase
         .from('bookings')
-        .insert(newBooking)
+        .insert(newBooking as any)
         .select()
 
       if (error) throw error
@@ -222,12 +230,16 @@ export const useBookings = () => {
     updates: Partial<Omit<Booking, 'id' | 'createdAt' | 'updatedAt'>>
   ) => {
     try {
+      // Convert camelCase to lowercase for PostgreSQL
+      const dbUpdates: any = {}
+      Object.entries(updates).forEach(([key, value]) => {
+        dbUpdates[key.toLowerCase()] = value
+      })
+      dbUpdates['updatedat'] = new Date().toISOString()
+
       const { data, error } = await supabase
         .from('bookings')
-        .update({
-          ...updates,
-          updatedAt: new Date().toISOString(),
-        })
+        .update(dbUpdates)
         .eq('id', id)
         .select()
 

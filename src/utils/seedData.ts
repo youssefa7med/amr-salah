@@ -227,11 +227,23 @@ export const seedSampleData = async () => {
           ]
 
           for (const booking of sampleBookings) {
-            await supabase.from('bookings').insert({
-              ...booking,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
+            // Convert to lowercase column names for PostgreSQL
+            const dbBooking = {
+              clientid: booking.clientId,
+              clientname: booking.clientName,
+              clientphone: booking.clientPhone,
+              barberid: booking.barberId,
+              barbername: booking.barberName,
+              servicetype: booking.serviceType,
+              bookingtime: booking.bookingTime,
+              duration: booking.duration,
+              queuenumber: booking.queueNumber,
+              status: booking.status,
+              notes: booking.notes,
+              createdat: new Date().toISOString(),
+              updatedat: new Date().toISOString(),
+            }
+            await supabase.from('bookings').insert(dbBooking)
           }
           console.log('✅ Sample bookings inserted')
         }
