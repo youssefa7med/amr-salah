@@ -20,6 +20,9 @@ import { DailyLogs } from './pages/DailyLogs'
 import { Barbers } from './pages/Barbers'
 import { Bookings } from './pages/Bookings'
 import { QueueDisplay } from './pages/QueueDisplay'
+import { AdminDashboard } from './pages/AdminDashboard'
+import { AdminShops } from './pages/AdminShops'
+import { AdminPlans } from './pages/AdminPlans'
 
 /**
  * ProtectedRoute Component
@@ -253,8 +256,37 @@ function App() {
             }
           />
 
-          {/* Admin Routes - Will be added in STEP 4 */}
-          {/* <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} /> */}
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <AdminDashboard />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/shops"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <AdminShops />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/plans"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <AdminPlans />
+                </Layout>
+              </AdminRoute>
+            }
+          />
 
           {/* Default Route */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase, Client } from '../supabase'
 import toast from 'react-hot-toast'
 
 export const useClients = () => {
+  const { shopId } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,9 +12,15 @@ export const useClients = () => {
   const fetchClients = async () => {
     try {
       setLoading(true)
+      if (!shopId) {
+        setClients([])
+        return
+      }
+      
       const { data, error } = await supabase
         .from('clients')
         .select('*')
+        .eq('shop_id', shopId)
         .order('createdAt', { ascending: false })
 
       if (error) throw error
@@ -28,14 +36,17 @@ export const useClients = () => {
 
   useEffect(() => {
     fetchClients()
-  }, [])
+  }, [shopId])
 
   const addClient = async (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      if (!shopId) throw new Error('Shop ID is required')
+      
       const { data, error } = await supabase
         .from('clients')
         .insert({
           ...client,
+          shop_id: shopId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })

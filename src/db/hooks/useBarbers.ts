@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase, Barber } from '../supabase'
 import toast from 'react-hot-toast'
 
 export const useBarbers = () => {
+  const { shopId } = useAuth()
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -10,9 +12,15 @@ export const useBarbers = () => {
   const fetchBarbers = async () => {
     try {
       setLoading(true)
+      if (!shopId) {
+        setBarbers([])
+        return
+      }
+
       const { data, error } = await supabase
         .from('barbers')
         .select('*')
+        .eq('shop_id', shopId)
         .order('createdAt', { ascending: false })
 
       if (error) throw error
@@ -28,14 +36,17 @@ export const useBarbers = () => {
 
   useEffect(() => {
     fetchBarbers()
-  }, [])
+  }, [shopId])
 
   const addBarber = async (barber: Omit<Barber, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      if (!shopId) throw new Error('Shop ID is required')
+
       const { data, error } = await supabase
         .from('barbers')
         .insert({
           ...barber,
+          shop_id: shopId,
           active: true,
         })
         .select()

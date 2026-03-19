@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useLanguage } from '../../hooks/useLanguage'
+import { useAuth } from '../../hooks/useAuth'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BarChart3,
@@ -15,6 +16,8 @@ import {
   FileText,
   Calendar,
   Clock,
+  Building2,
+  Package,
 } from 'lucide-react'
 
 interface SidebarLink {
@@ -33,9 +36,10 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, onNavigate }) => {
   const { t } = useTranslation()
   const { language } = useLanguage()
+  const { role } = useAuth()
   const navigate = useNavigate()
 
-  const links: SidebarLink[] = [
+  const shopLinks: SidebarLink[] = [
     { icon: <Home size={20} />, label: t('navigation.dashboard'), href: '/dashboard' },
     { icon: <ShoppingCart size={20} />, label: t('navigation.pos'), href: '/pos' },
     { icon: <Users size={20} />, label: t('navigation.clients'), href: '/clients' },
@@ -48,6 +52,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, 
     { icon: <BarChart3 size={20} />, label: t('navigation.analytics'), href: '/analytics' },
     { icon: <Settings size={20} />, label: t('navigation.settings'), href: '/settings' },
   ]
+
+  const adminLinks: SidebarLink[] = [
+    { icon: <Home size={20} />, label: 'Admin Dashboard', href: '/admin' },
+    { icon: <Building2 size={20} />, label: 'Manage Shops', href: '/admin/shops' },
+    { icon: <Package size={20} />, label: 'Pricing Plans', href: '/admin/plans' },
+  ]
+
+  const links = role === 'admin' ? adminLinks : shopLinks
 
   const handleNavigate = (path: string) => {
     navigate(path)

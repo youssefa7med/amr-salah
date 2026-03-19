@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase, Transaction } from '../supabase'
 import { getEgyptDateString } from '../../utils/egyptTime'
 import toast from 'react-hot-toast'
 
 export const useTransactions = () => {
+  const { shopId } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -11,10 +13,16 @@ export const useTransactions = () => {
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true)
+      if (!shopId) {
+        setTransactions([])
+        return
+      }
+
       console.log('Fetching transactions from database...')
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
+        .eq('shop_id', shopId)
         .order('createdAt', { ascending: false })
 
       if (error) throw error
@@ -28,7 +36,7 @@ export const useTransactions = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [shopId])
 
   useEffect(() => {
     fetchTransactions()
@@ -36,10 +44,13 @@ export const useTransactions = () => {
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      if (!shopId) throw new Error('Shop ID is required')
+
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           ...transaction,
+          shop_id: shopId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
