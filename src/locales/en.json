@@ -392,6 +392,34 @@
       "no_data": "No billing data available"
     }
   },
+  "shop": {
+    "billing": {
+      "title": "Billing",
+      "current_plan": "Current Plan",
+      "plan_details": "Plan Details",
+      "pricing_type": "Pricing Type",
+      "usage_this_month": "Usage This Month",
+      "estimated_bill": "Estimated Bill This Month",
+      "subscription_status": "Subscription Status",
+      "subscription_end_date": "Subscription End Date",
+      "expiring_soon": "Expiring Soon",
+      "days_left": "days left",
+      "expired": "Expired",
+      "contact_admin": "Please contact the admin to renew.",
+      "active": "Active",
+      "usage_history": "Usage History (Last 6 Months)",
+      "usage_chart_title": "Monthly Usage Trend",
+      "quota_limit": "Quota Limit",
+      "usage_percentage": "Usage",
+      "per_transaction": "Per Transaction",
+      "per_service": "Per Service",
+      "quota_plan": "Quota Based",
+      "transactions": "Transactions",
+      "services": "Services",
+      "over_quota": "Over Quota",
+      "within_quota": "Within Quota"
+    }
+  },
   "errors": {
     "required_field": "This field is required",
     "invalid_phone": "Invalid phone number",

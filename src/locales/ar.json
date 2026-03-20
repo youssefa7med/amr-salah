@@ -293,6 +293,34 @@
     "barber": "الحلاق",
     "date_time": "التاريخ والوقت"
   },
+  "shop": {
+    "billing": {
+      "title": "الفاتورة",
+      "current_plan": "الخطة الحالية",
+      "plan_details": "تفاصيل الخطة",
+      "pricing_type": "نوع التسعير",
+      "usage_this_month": "الاستخدام هذا الشهر",
+      "estimated_bill": "الفاتورة المتوقعة هذا الشهر",
+      "subscription_status": "حالة الاشتراك",
+      "subscription_end_date": "تاريخ انتهاء الاشتراك",
+      "expiring_soon": "ينتهي قريباً",
+      "days_left": "أيام متبقية",
+      "expired": "منتهي الصلاحية",
+      "contact_admin": "يرجى التواصل مع الإدارة لتجديد الاشتراك.",
+      "active": "نشط",
+      "usage_history": "سجل الاستخدام (آخر 6 أشهر)",
+      "usage_chart_title": "اتجاه الاستخدام الشهري",
+      "quota_limit": "حد الحصة",
+      "usage_percentage": "الاستخدام",
+      "per_transaction": "لكل معاملة",
+      "per_service": "لكل خدمة",
+      "quota_plan": "حد محدد",
+      "transactions": "المعاملات",
+      "services": "الخدمات",
+      "over_quota": "تجاوز الحد",
+      "within_quota": "ضمن الحد"
+    }
+  },
   "errors": {
     "required_field": "هذا الحقل مطلوب",
     "invalid_phone": "رقم تليفون غير صحيح",
