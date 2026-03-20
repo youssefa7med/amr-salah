@@ -57,10 +57,19 @@
     "dashboard": "لوحة التحكم",
     "pos": "الكاشير",
     "clients": "العملاء",
+    "barbers": "الحلاقين",
+    "bookings": "الحجوزات",
+    "queue": "حالة الطابور",
+    "dailyLogs": "السجلات اليومية",
     "services": "الخدمات",
     "expenses": "المصروفات",
     "analytics": "التحليلات",
-    "settings": "الإعدادات"
+    "billing": "الفاتورة",
+    "settings": "الإعدادات",
+    "admin_dashboard": "لوحة تحكم الإدارة",
+    "admin_shops": "إدارة المحلات",
+    "admin_plans": "الخطط",
+    "admin_billing": "فواتير الإدارة"
   },
   "dashboard": {
     "title": "لوحة التحكم",

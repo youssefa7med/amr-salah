@@ -18,6 +18,7 @@ import {
   Clock,
   Building2,
   Package,
+  Receipt,
 } from 'lucide-react'
 
 interface SidebarLink {
@@ -43,20 +44,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath }
     { icon: <Home size={20} />, label: t('navigation.dashboard'), href: '/dashboard' },
     { icon: <ShoppingCart size={20} />, label: t('navigation.pos'), href: '/pos' },
     { icon: <Users size={20} />, label: t('navigation.clients'), href: '/clients' },
-    { icon: <Scissors size={20} />, label: 'الحلاقين', href: '/barbers' },
-    { icon: <Calendar size={20} />, label: 'الحجوزات', href: '/bookings' },
-    { icon: <Clock size={20} />, label: 'حالة الطابور', href: '/queue' },
+    { icon: <Scissors size={20} />, label: t('navigation.barbers'), href: '/barbers' },
+    { icon: <Calendar size={20} />, label: t('navigation.bookings'), href: '/bookings' },
+    { icon: <Clock size={20} />, label: t('navigation.queue'), href: '/queue' },
     { icon: <Scissors size={20} />, label: t('navigation.services'), href: '/services' },
-    { icon: <FileText size={20} />, label: 'السجلات اليومية', href: '/logs' },
+    { icon: <FileText size={20} />, label: t('navigation.dailyLogs'), href: '/logs' },
     { icon: <DollarSign size={20} />, label: t('navigation.expenses'), href: '/expenses' },
     { icon: <BarChart3 size={20} />, label: t('navigation.analytics'), href: '/analytics' },
+    { icon: <Receipt size={20} />, label: t('navigation.billing'), href: '/billing' },
     { icon: <Settings size={20} />, label: t('navigation.settings'), href: '/settings' },
   ]
 
   const adminLinks: SidebarLink[] = [
-    { icon: <Home size={20} />, label: 'Admin Dashboard', href: '/admin' },
-    { icon: <Building2 size={20} />, label: 'Manage Shops', href: '/admin/shops' },
-    { icon: <Package size={20} />, label: 'Pricing Plans', href: '/admin/plans' },
+    { icon: <Home size={20} />, label: t('navigation.admin_dashboard'), href: '/admin' },
+    { icon: <Building2 size={20} />, label: t('navigation.admin_shops'), href: '/admin/shops' },
+    { icon: <Package size={20} />, label: t('navigation.admin_plans'), href: '/admin/plans' },
+    { icon: <Receipt size={20} />, label: t('navigation.admin_billing'), href: '/admin/billing' },
   ]
 
   const links = role === 'admin' ? adminLinks : shopLinks

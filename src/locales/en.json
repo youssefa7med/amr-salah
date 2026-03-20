@@ -57,10 +57,19 @@
     "dashboard": "Dashboard",
     "pos": "Cashier",
     "clients": "Clients",
+    "barbers": "Barbers",
+    "bookings": "Bookings",
+    "queue": "Queue Status",
+    "dailyLogs": "Daily Logs",
     "services": "Services",
     "expenses": "Expenses",
     "analytics": "Analytics",
-    "settings": "Settings"
+    "billing": "Billing",
+    "settings": "Settings",
+    "admin_dashboard": "Admin Dashboard",
+    "admin_shops": "Manage Shops",
+    "admin_plans": "Pricing Plans",
+    "admin_billing": "Admin Billing"
   },
   "pages": {
     "barbers_title": "Barbers",
