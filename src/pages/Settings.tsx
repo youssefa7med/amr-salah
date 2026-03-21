@@ -4,7 +4,6 @@ import { useLanguage } from '../hooks/useLanguage'
 import { useTheme } from '../hooks/useTheme'
 import { GlassCard } from '../components/ui/GlassCard'
 import { useSettings } from '../db/hooks/useSettings'
-import { useAuth } from '../hooks/useAuth'
 import { motion } from 'framer-motion'
 import { exportToJSON, importFromJSON } from '../utils/exportCSV'
 import toast from 'react-hot-toast'
@@ -14,7 +13,6 @@ export const Settings: React.FC = () => {
   const { t } = useTranslation()
   const { language, toggleLanguage } = useLanguage()
   const { theme, toggleTheme } = useTheme()
-  const { shopId } = useAuth()
   const { getSetting, updateSetting } = useSettings()
 
   const [isEditing, setIsEditing] = useState(false)
