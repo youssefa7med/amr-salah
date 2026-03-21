@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase, Transaction } from '../supabase'
-import { getEgyptDateString, getEgyptYearMonth } from '../../utils/egyptTime'
+import { getEgyptDateString } from '../../utils/egyptTime'
 import toast from 'react-hot-toast'
 
 export const useTransactions = () => {
@@ -58,21 +58,8 @@ export const useTransactions = () => {
 
       if (error) throw error
 
-      const transactionId = data?.[0]?.id
-      if (transactionId) {
-        // ✅ Log usage for billing purposes (using Egypt timezone)
-        await supabase
-          .from('usage_logs')
-          .insert({
-            shop_id: shopId,
-            action_type: 'transaction',
-            quantity: 1,
-            reference_id: transactionId,
-            billable_amount: transaction.total || 0,
-            year_month: getEgyptYearMonth(), // YYYY-MM in Egypt timezone
-          })
-          .throwOnError()
-      }
+      // ✅ Database trigger (log_transaction_usage) automatically logs to usage_logs
+      // No need to insert here - trigger handles it automatically
 
       await fetchTransactions()
       return data?.[0]

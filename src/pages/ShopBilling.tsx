@@ -91,12 +91,11 @@ export const ShopBilling = () => {
 
       const { data: currentMonthLogs } = await supabase
         .from('usage_logs')
-        .select('quantity, billable_amount')
+        .select('quantity')
         .eq('shop_id', shopId!)
         .eq('year_month', currentYearMonth)
 
       const monthUsage = currentMonthLogs?.reduce((sum, log) => sum + (log.quantity || 0), 0) || 0
-      const currentMonthBillable = currentMonthLogs?.reduce((sum, log) => sum + (log.billable_amount || 0), 0) || 0
       
       setCurrentMonthUsage(monthUsage)
 
@@ -104,9 +103,11 @@ export const ShopBilling = () => {
       if (plan) {
         let bill = 0
         if (plan.pricing_type === 'quota') {
+          // For quota plans: fixed monthly price
           bill = plan.monthly_price || 0
         } else {
-          bill = currentMonthBillable
+          // For per_service or per_transaction: quantity × price_per_unit
+          bill = monthUsage * (plan.price_per_unit || 0)
         }
         setEstimatedBill(bill)
       }

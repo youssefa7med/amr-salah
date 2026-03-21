@@ -138,9 +138,10 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(
         className="bg-white text-black p-0"
         style={{
           width: '80mm',
+          margin: '0 auto',
           fontFamily: "'Cairo', 'Arial', monospace",
           direction: 'rtl',
-          textAlign: 'right',
+          textAlign: 'center',
           fontSize: '12px',
           lineHeight: '1.6',
         }}
@@ -148,17 +149,32 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(
         <style>{`
           @media print {
             body > *:not(#receipt-container) { display: none !important; }
+            body {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin: 0;
+              padding: 10mm;
+              background: white;
+            }
             #receipt-container { 
               width: 80mm;
+              max-width: 80mm;
               font-family: 'Cairo', 'Arial', monospace;
               direction: rtl;
-              margin: 0;
+              text-align: center;
+              margin: 0 auto;
               padding: 0;
+              box-sizing: border-box;
             }
             .receipt-divider { 
               border-bottom: 1px solid #000;
               margin: 8px 0;
               padding: 0;
+            }
+            @page {
+              size: 80mm 200mm;
+              margin: 0;
             }
           }
         `}</style>
