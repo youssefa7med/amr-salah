@@ -13,17 +13,6 @@ export interface AuthUser {
   error: string | null
 }
 
-/**
- * useAuth Hook
- * 
- * Manages authentication state and role detection
- * - Detects if user is admin or shop owner
- * - Gets shop_id for shop owners
- * - Handles login/logout
- * - Provides loading and error states
- * - Never gets stuck in loading state (8-second timeout)
- * - Single source of truth: onAuthStateChange
- */
 export function useAuth() {
   const [state, setState] = useState<AuthUser>({
     user: null,
@@ -34,221 +23,92 @@ export function useAuth() {
     error: null,
   })
 
-  // Check if user is admin
   const checkIfAdmin = useCallback(async (userId: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('admin_users')
         .select('id')
         .eq('auth_user_id', userId)
-        .limit(1)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = no rows found (not an admin)
-        console.error('Error checking admin status:', error)
-        return false
-      }
-
+        .maybeSingle()
       return !!data
-    } catch (err) {
-      console.error('Error checking admin status:', err)
-      return false
-    }
+    } catch { return false }
   }, [])
 
-  // Get shop_id for shop owner
   const getShopId = useCallback(async (userId: string): Promise<string | null> => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('shops')
         .select('id')
         .eq('auth_user_id', userId)
-        .limit(1)
-        .single()
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error getting shop_id:', error)
-        return null
-      }
-
+        .maybeSingle()
       return data?.id || null
-    } catch (err) {
-      console.error('Error getting shop_id:', err)
-      return null
-    }
+    } catch { return null }
   }, [])
 
-  // Handle auth state changes - single source of truth
-  const handleAuthStateChange = useCallback(
-    async (session: Session | null) => {
+  useEffect(() => {
+    let mounted = true
+
+    const resolveUser = async (session: Session | null) => {
       if (!session) {
-        setState({
-          user: null,
-          session: null,
-          role: null,
-          shopId: null,
-          loading: false,
-          error: null,
-        })
+        if (mounted) setState({ user: null, session: null, role: null, shopId: null, loading: false, error: null })
         return
       }
 
-      try {
-        const userId = session.user.id
-        const isAdmin = await checkIfAdmin(userId)
+      const userId = session.user.id
+      const isAdmin = await checkIfAdmin(userId)
 
-        if (isAdmin) {
-          setState({
-            user: session.user,
-            session,
-            role: 'admin',
-            shopId: null,
-            loading: false,
-            error: null,
-          })
-        } else {
-          const shopId = await getShopId(userId)
-
-          if (shopId) {
-            setState({
-              user: session.user,
-              session,
-              role: 'shop',
-              shopId,
-              loading: false,
-              error: null,
-            })
-          } else {
-            // User exists but not admin or shop owner - sign out
-            await supabase.auth.signOut()
-            setState({
-              user: null,
-              session: null,
-              role: null,
-              shopId: null,
-              loading: false,
-              error: 'User not found in system',
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Auth state change error:', error)
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Authentication error',
-        }))
+      if (isAdmin) {
+        if (mounted) setState({ user: session.user, session, role: 'admin', shopId: null, loading: false, error: null })
+        return
       }
-    },
-    [checkIfAdmin, getShopId]
-  )
 
-  // Initialize auth on mount - uses onAuthStateChange as single source of truth
-  useEffect(() => {
-    let mounted = true
-    let timeoutId: NodeJS.Timeout
-
-    // Set 8-second timeout to prevent infinite loading state
-    timeoutId = setTimeout(() => {
-      if (mounted) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: prev.error || 'Authentication check timed out',
-        }))
+      const shopId = await getShopId(userId)
+      if (shopId) {
+        if (mounted) setState({ user: session.user, session, role: 'shop', shopId, loading: false, error: null })
+        return
       }
-    }, 8000)
 
-    // Listen for auth state changes - single source of truth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return
+      await supabase.auth.signOut()
+      if (mounted) setState({ user: null, session: null, role: null, shopId: null, loading: false, error: 'User not found in system' })
+    }
 
-        // Clear timeout when auth state is determined
-        clearTimeout(timeoutId)
+    // ✅ Step 1: Check existing session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      resolveUser(session)
+    })
 
-        await handleAuthStateChange(session)
-      }
-    )
+    // ✅ Step 2: Listen for changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) resolveUser(session)
+    })
+
+    // ✅ Step 3: Fallback timeout
+    const timeout = setTimeout(() => {
+      if (mounted) setState(prev => prev.loading ? { ...prev, loading: false, error: null } : prev)
+    }, 5000)
 
     return () => {
       mounted = false
-      clearTimeout(timeoutId)
-      subscription?.unsubscribe()
+      subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-  }, [handleAuthStateChange])
+  }, [checkIfAdmin, getShopId])
 
-  // Sign in function
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }))
+  const signIn = useCallback(async (email: string, password: string) => {
+    setState(prev => ({ ...prev, loading: true, error: null }))
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
+      setState(prev => ({ ...prev, loading: false, error: error.message }))
+      return { error }
+    }
+    return { error: null }
+  }, [])
 
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
-        if (error) {
-          setState(prev => ({
-            ...prev,
-            loading: false,
-            error: error.message,
-          }))
-          return { error }
-        }
-
-        // Auth state will be updated via onAuthStateChange listener
-        return { error: null }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Sign in failed'
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: message,
-        }))
-        return { error: { message } }
-      }
-    },
-    []
-  )
-
-  // Sign out function
   const signOut = useCallback(async () => {
-    try {
-      setState(prev => ({ ...prev, loading: true }))
-
-      const { error } = await supabase.auth.signOut()
-
-      if (error) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message,
-        }))
-        return { error }
-      }
-
-      setState({
-        user: null,
-        session: null,
-        role: null,
-        shopId: null,
-        loading: false,
-        error: null,
-      })
-
-      return { error: null }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Sign out failed'
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: message,
-      }))
-      return { error: { message } }
-    }
+    setState(prev => ({ ...prev, loading: true }))
+    await supabase.auth.signOut()
+    setState({ user: null, session: null, role: null, shopId: null, loading: false, error: null })
+    return { error: null }
   }, [])
 
   return {
