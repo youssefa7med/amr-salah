@@ -51,7 +51,10 @@
     "password": "كلمة المرور",
     "demoCredentials": "بيانات غير حقيقية للاختبار:",
     "logout": "تسجيل الخروج",
-    "allRightsReserved": "جميع الحقوق محفوظة."
+    "allRightsReserved": "جميع الحقوق محفوظة.",
+    "days": "أيام",
+    "info": "معلومات",
+    "created": "تم الإنشاء"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -337,6 +340,7 @@
       "owner_email": "بريد المالك",
       "password": "كلمة المرور",
       "select_plan": "اختر خطة",
+      "no_plan": "لا توجد خطة",
       "subscription_end_date": "تاريخ انتهاء الاشتراك",
       "subscription_status": "الحالة",
       "plan": "الخطة",
@@ -345,7 +349,9 @@
       "actions": "الإجراءات",
       "edit_plan": "تعديل الخطة",
       "extend_subscription": "تمديد الاشتراك",
+      "extend_30_days": "تمديد 30 يوم",
       "delete_shop": "حذف المحل",
+      "edit_shop": "تعديل المحل",
       "activate": "تفعيل",
       "deactivate": "تعطيل",
       "active": "نشط",

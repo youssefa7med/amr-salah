@@ -34,13 +34,13 @@ export const AdminShops = () => {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedShop, setSelectedShop] = useState<ShopWithPlan | null>(null)
   const [creatingShop, setCreatingShop] = useState(false)
-  const [extendingSubscription, setExtendingSubscription] = useState(false)
+  const [updatingShop, setUpdatingShop] = useState(false)
 
-  // Form state
+  // Form state for creation
   const [formData, setFormData] = useState({
     name: '',
     owner_email: '',
@@ -49,8 +49,12 @@ export const AdminShops = () => {
     subscription_end_date: '',
   })
 
-  const [extendData, setExtendData] = useState({
-    days: '30',
+  // Form state for editing
+  const [editData, setEditData] = useState({
+    name: '',
+    plan_id: '',
+    subscription_end_date: '',
+    subscription_status: '' as 'active' | 'inactive' | 'suspended',
   })
 
   // Fetch shops and plans
@@ -161,15 +165,62 @@ export const AdminShops = () => {
     }
   }
 
+  // Handle opening edit modal
+  const handleOpenEdit = (shop: ShopWithPlan) => {
+    setSelectedShop(shop)
+    setEditData({
+      name: shop.name,
+      plan_id: shop.plan_id || '',
+      subscription_end_date: shop.subscription_end_date || '',
+      subscription_status: shop.subscription_status,
+    })
+    setShowEditModal(true)
+  }
+
+  // Update shop
+  const handleEditShop = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedShop) return
+
+    if (!editData.name || !editData.subscription_end_date) {
+      toast.error(t('errors.required_field'))
+      return
+    }
+
+    try {
+      setUpdatingShop(true)
+
+      const { error } = await supabase
+        .from('shops')
+        .update({
+          name: editData.name,
+          plan_id: editData.plan_id || null,
+          subscription_end_date: editData.subscription_end_date,
+          subscription_status: editData.subscription_status,
+        })
+        .eq('id', selectedShop.id)
+
+      if (error) throw error
+
+      toast.success(t('admin.shops.shop_updated'))
+      setShowEditModal(false)
+      setSelectedShop(null)
+      await fetchShopsAndPlans()
+    } catch (error: any) {
+      console.error('Error updating shop:', error)
+      toast.error(t('admin.shops.error_update'))
+    } finally {
+      setUpdatingShop(false)
+    }
+  }
+
   // Extend subscription
-  const handleExtendSubscription = async () => {
+  const handleExtendSubscription = async (days: number) => {
     if (!selectedShop) return
 
     try {
-      setExtendingSubscription(true)
-
       const currentEnd = new Date(selectedShop.subscription_end_date || new Date())
-      const newEnd = new Date(currentEnd.getTime() + parseInt(extendData.days) * 24 * 60 * 60 * 1000)
+      const newEnd = new Date(currentEnd.getTime() + days * 24 * 60 * 60 * 1000)
 
       const { error } = await supabase
         .from('shops')
@@ -179,33 +230,10 @@ export const AdminShops = () => {
       if (error) throw error
 
       toast.success(t('admin.shops.subscription_extended'))
-      setShowExtendModal(false)
-      setExtendData({ days: '30' })
+      setEditData(prev => ({ ...prev, subscription_end_date: newEnd.toISOString().split('T')[0] }))
       await fetchShopsAndPlans()
     } catch (error: any) {
       console.error('Error extending subscription:', error)
-      toast.error(t('admin.shops.error_update'))
-    } finally {
-      setExtendingSubscription(false)
-    }
-  }
-
-  // Toggle status
-  const handleToggleStatus = async (shop: ShopWithPlan) => {
-    try {
-      const newStatus = shop.subscription_status === 'active' ? 'inactive' : 'active'
-
-      const { error } = await supabase
-        .from('shops')
-        .update({ subscription_status: newStatus })
-        .eq('id', shop.id)
-
-      if (error) throw error
-
-      toast.success(t('admin.shops.shop_updated'))
-      await fetchShopsAndPlans()
-    } catch (error: any) {
-      console.error('Error updating shop:', error)
       toast.error(t('admin.shops.error_update'))
     }
   }
@@ -319,23 +347,9 @@ export const AdminShops = () => {
                     <td className='px-6 py-4'>
                       <div className='flex gap-2'>
                         <button
-                          onClick={() => {
-                            setSelectedShop(shop)
-                            setShowExtendModal(true)
-                          }}
-                          className='p-2 hover:bg-white/10 rounded transition text-slate-400 hover:text-gold-400'
-                          title={t('admin.shops.extend_subscription')}
-                        >
-                          <Calendar size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(shop)}
-                          className={`p-2 rounded transition ${
-                            shop.subscription_status === 'active'
-                              ? 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
-                              : 'text-slate-400 hover:bg-emerald-500/20 hover:text-emerald-400'
-                          }`}
-                          title={shop.subscription_status === 'active' ? t('admin.shops.deactivate') : t('admin.shops.activate')}
+                          onClick={() => handleOpenEdit(shop)}
+                          className='p-2 hover:bg-gold-400/20 rounded transition text-slate-400 hover:text-gold-400'
+                          title={t('admin.shops.edit_shop')}
                         >
                           <Edit2 size={18} />
                         </button>
@@ -455,67 +469,121 @@ export const AdminShops = () => {
         </form>
       </Modal>
 
-      {/* EXTEND SUBSCRIPTION MODAL */}
+      {/* EDIT SHOP MODAL */}
       <Modal
-        isOpen={showExtendModal}
-        onClose={() => setShowExtendModal(false)}
-        title={t('admin.shops.extend_subscription')}
-        size='sm'
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedShop(null)
+        }}
+        title={t('admin.shops.edit_shop')}
+        size='lg'
       >
-        <div className='space-y-4'>
+        <form onSubmit={handleEditShop} className='space-y-4'>
           {selectedShop && (
             <>
+              {/* Shop Name */}
               <div>
-                <p className='text-slate-300 mb-2'>{selectedShop.name}</p>
-                <div className='bg-white/5 border border-white/10 rounded-lg p-3'>
-                  <p className='text-xs text-slate-400'>{t('admin.shops.end_date')}</p>
-                  <p className='text-white font-semibold'>
-                    {selectedShop.subscription_end_date
-                      ? new Date(selectedShop.subscription_end_date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US')
-                      : '—'}
+                <label className='block text-sm font-medium text-slate-200 mb-2'>{t('admin.shops.shop_name')} *</label>
+                <input
+                  type='text'
+                  value={editData.name}
+                  onChange={e => setEditData({ ...editData, name: e.target.value })}
+                  placeholder={t('admin.shops.shop_name')}
+                  className='w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-gold-400/50 transition'
+                  required
+                />
+              </div>
+
+              {/* Plan Selection */}
+              <div>
+                <label className='block text-sm font-medium text-slate-200 mb-2'>{t('admin.shops.plan')}</label>
+                <select
+                  value={editData.plan_id}
+                  onChange={e => setEditData({ ...editData, plan_id: e.target.value })}
+                  className='w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-gold-400/50 transition'
+                >
+                  <option value=''>{t('admin.shops.no_plan')}</option>
+                  {plans.map(plan => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name} — {getPricingTypeLabel(plan.pricing_type)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subscription End Date */}
+              <div>
+                <label className='block text-sm font-medium text-slate-200 mb-2'>{t('admin.shops.subscription_end_date')} *</label>
+                <div className='flex gap-2'>
+                  <input
+                    type='date'
+                    value={editData.subscription_end_date}
+                    onChange={e => setEditData({ ...editData, subscription_end_date: e.target.value })}
+                    className='flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-gold-400/50 transition'
+                    required
+                  />
+                  <button
+                    type='button'
+                    onClick={() => handleExtendSubscription(30)}
+                    className='px-4 py-2 bg-white/10 border border-white/20 text-slate-300 rounded-lg hover:bg-white/20 transition text-sm font-medium'
+                    title={t('admin.shops.extend_30_days')}
+                  >
+                    +30 {t('common.days')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Subscription Status */}
+              <div>
+                <label className='block text-sm font-medium text-slate-200 mb-2'>{t('admin.shops.subscription_status')}</label>
+                <select
+                  value={editData.subscription_status}
+                  onChange={e => setEditData({ ...editData, subscription_status: e.target.value as 'active' | 'inactive' | 'suspended' })}
+                  className='w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-gold-400/50 transition'
+                >
+                  <option value='active'>{t('admin.shops.active')}</option>
+                  <option value='inactive'>{t('admin.shops.inactive')}</option>
+                  <option value='suspended'>{t('admin.shops.suspended')}</option>
+                </select>
+              </div>
+
+              {/* Display Info */}
+              <div className='bg-white/5 border border-white/10 rounded-lg p-4 space-y-2'>
+                <p className='text-xs text-slate-400 font-medium'>{t('common.info')}</p>
+                <div className='text-sm'>
+                  <p className='text-slate-300'>
+                    <span className='text-slate-400'>{t('admin.shops.owner_email')}:</span> {selectedShop.owner_email}
+                  </p>
+                  <p className='text-slate-300'>
+                    <span className='text-slate-400'>{t('common.created')}:</span> {new Date(selectedShop.created_at).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US')}
                   </p>
                 </div>
               </div>
 
-              <div>
-                <label className='block text-sm font-medium text-slate-200 mb-2'>{t('admin.shops.extend_days')} *</label>
-                <input
-                  type='number'
-                  value={extendData.days}
-                  onChange={e => setExtendData({ days: e.target.value })}
-                  min='1'
-                  className='w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-gold-400/50 transition'
-                />
-              </div>
-
-              <div className='bg-white/5 border border-white/10 rounded-lg p-3'>
-                <p className='text-xs text-slate-400'>{t('admin.shops.end_date')}</p>
-                <p className='text-white font-semibold'>
-                  {new Date(
-                    new Date(selectedShop.subscription_end_date || new Date()).getTime() +
-                      parseInt(extendData.days) * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US')}
-                </p>
+              {/* Buttons */}
+              <div className='flex gap-3 justify-end pt-4'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setSelectedShop(null)
+                  }}
+                  className='px-4 py-2 border border-white/20 text-slate-300 rounded-lg hover:bg-white/5 transition'
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type='submit'
+                  disabled={updatingShop}
+                  className='px-6 py-2 bg-gradient-to-r from-gold-400 to-gold-500 text-slate-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-gold-400/30 transition disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  {updatingShop ? t('common.loading') : t('common.save')}
+                </button>
               </div>
             </>
           )}
-
-          <div className='flex gap-3 justify-end pt-4'>
-            <button
-              onClick={() => setShowExtendModal(false)}
-              className='px-4 py-2 border border-white/20 text-slate-300 rounded-lg hover:bg-white/5 transition'
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleExtendSubscription}
-              disabled={extendingSubscription}
-              className='px-6 py-2 bg-gradient-to-r from-gold-400 to-gold-500 text-slate-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-gold-400/30 transition disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              {extendingSubscription ? t('common.loading') : t('common.save')}
-            </button>
-          </div>
-        </div>
+        </form>
       </Modal>
 
       {/* DELETE CONFIRMATION DIALOG */}

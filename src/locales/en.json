@@ -51,7 +51,10 @@
     "password": "Password",
     "demoCredentials": "Demo Credentials:",
     "logout": "Logout",
-    "allRightsReserved": "All rights reserved."
+    "allRightsReserved": "All rights reserved.",
+    "days": "Days",
+    "info": "Info",
+    "created": "Created"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -313,6 +316,7 @@
       "owner_email": "Owner Email",
       "password": "Password",
       "select_plan": "Select Plan",
+      "no_plan": "No Plan",
       "subscription_end_date": "Subscription End Date",
       "subscription_status": "Status",
       "plan": "Plan",
@@ -321,7 +325,9 @@
       "actions": "Actions",
       "edit_plan": "Edit Plan",
       "extend_subscription": "Extend Subscription",
+      "extend_30_days": "Extend 30 days",
       "delete_shop": "Delete Shop",
+      "edit_shop": "Edit Shop",
       "activate": "Activate",
       "deactivate": "Deactivate",
       "active": "Active",

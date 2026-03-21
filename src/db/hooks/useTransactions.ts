@@ -57,6 +57,23 @@ export const useTransactions = () => {
         .select()
 
       if (error) throw error
+
+      const transactionId = data?.[0]?.id
+      if (transactionId) {
+        // ✅ Log usage for billing purposes
+        await supabase
+          .from('usage_logs')
+          .insert({
+            shop_id: shopId,
+            action_type: 'transaction',
+            quantity: 1,
+            reference_id: transactionId,
+            billable_amount: transaction.total || 0,
+            year_month: new Date().toISOString().substring(0, 7), // YYYY-MM
+          })
+          .throwOnError()
+      }
+
       await fetchTransactions()
       return data?.[0]
     } catch (err: any) {
