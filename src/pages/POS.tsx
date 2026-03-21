@@ -15,7 +15,6 @@ import { appEmitter } from '../utils/eventEmitter'
 import { getEgyptDateString, getEgyptTimeString } from '../utils/egyptTime'
 import toast from 'react-hot-toast'
 import { useAuth } from '../hooks/useAuth'
-import Fuse from 'fuse.js'
 
 // ✅ Normalize search input - fix Arabic keyboard/IME issues
 const normalizeSearchInput = (value: string): string => {
@@ -110,40 +109,30 @@ export const POS: React.FC = () => {
     }
   }, [services, getVariantsByServiceId])
 
-  // Fuzzy search clients with enhanced phone search
-  const fuse = new Fuse(clients, {
-    keys: [
-      { name: 'name', weight: 0.9 },
-      { name: 'phone', weight: 0.8 }
-    ],
-    threshold: 0.4,  // ✅ More lenient threshold for partial matches
-    includeScore: true,
-  })
-  
-  // ✅ Filter results based on normalized search query
+  // ✅ Simple, accurate search logic
+  // Phone search is EXACT substring match
+  // Name search can include partial matches
   const searchResults = (() => {
     const normalized = normalizeSearchInput(searchQuery)
     if (!normalized) return []
     
-    // First try Fuse fuzzy search
-    let results = fuse.search(normalized)
+    const q = normalized.trim().toLowerCase()
+    const isNumeric = /^\d+$/.test(q)  // All digits = phone search only
     
-    // If few results, try literal phone number match
-    if (results.length < 3 && /^\d+$/.test(normalized)) {
-      const phoneMatches = clients.filter(client => 
-        client.phone && client.phone.includes(normalized)
+    const filtered = clients.filter(client => {
+      if (isNumeric) {
+        // ✅ Phone search: exact substring match only
+        return client.phone?.toLowerCase().includes(q) || false
+      }
+      // ✅ Name/mixed search: fuzzy by name, exact by phone
+      return (
+        client.name?.toLowerCase().includes(q) ||
+        client.phone?.toLowerCase().includes(q)
       )
-      
-      // Combine and deduplicate results
-      const existingIds = new Set(results.map(r => r.item.id))
-      phoneMatches.forEach(client => {
-        if (!existingIds.has(client.id)) {
-          results.push({ item: client, score: 0 } as any)
-        }
-      })
-    }
+    })
     
-    return results
+    // Convert to Fuse result format for consistency with UI
+    return filtered.map(item => ({ item, score: 0 } as any))
   })()
 
   const handleAddService = async (service: any) => {
