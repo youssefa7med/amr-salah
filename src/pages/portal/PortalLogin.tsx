@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { usePortalAuth } from '@/hooks/usePortalAuth'
 import { usePortalSettingsWithShop } from '@/hooks/usePortalSettingsWithShop'
+import { supabase } from '@/db/supabase'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -71,7 +72,6 @@ export function PortalLogin() {
 
     setLoading(true)
     try {
-      const { supabase } = await import('@/db/supabase')
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/shop/${slug}/reset-password`,
       })

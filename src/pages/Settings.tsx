@@ -356,7 +356,7 @@ export const Settings: React.FC = () => {
               </div>
               <div
                 className="w-12 h-12 rounded-lg"
-                style={{ backgroundColor: portalSettings?.primary_color || '#FFD700' }}
+                style={{ backgroundColor: '#FFD700' }}
               />
             </div>
             {/* Portal Link - Professional UI */}
@@ -429,8 +429,8 @@ export const Settings: React.FC = () => {
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-400">القالب</p>
-              <p className="text-lg font-semibold text-white">قالب {portalSettings?.template_id}</p>
+              <p className="text-xs text-gray-400">حالة النظام</p>
+              <p className="text-lg font-semibold text-white">✅ نشط</p>
             </div>
           </div>
         )}

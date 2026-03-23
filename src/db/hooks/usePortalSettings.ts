@@ -7,15 +7,8 @@ interface PortalSettings {
   id: string
   shop_id: string
   is_active: boolean
-  template_id: number
-  primary_color: string
-  secondary_color: string
-  accent_color: string
-  text_color: string
-  logo_url: string | null
-  banner_url: string | null
-  welcome_message: string | null
   portal_slug: string
+  welcome_message: string | null
   created_at: string
   updated_at: string
 }
@@ -72,11 +65,6 @@ export const usePortalSettings = () => {
         .insert({
           shop_id: shopId,
           is_active: false,
-          template_id: 1,
-          primary_color: '#FFD700',
-          secondary_color: '#1E1E2E',
-          accent_color: '#FF6B6B',
-          text_color: '#FFFFFF',
           portal_slug: slug,
         })
         .select()
@@ -164,19 +152,6 @@ export const usePortalSettings = () => {
     await updatePortalSettings({ is_active: !portalSettings.is_active })
   }
 
-  const updateTemplate = async (templateId: number) => {
-    await updatePortalSettings({ template_id: templateId })
-  }
-
-  const updateColors = async (colors: {
-    primary_color?: string
-    secondary_color?: string
-    accent_color?: string
-    text_color?: string
-  }) => {
-    await updatePortalSettings(colors)
-  }
-
   const updateSlug = async (slug: string) => {
     // Validate slug format
     if (!slug.match(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/)) {
@@ -192,8 +167,6 @@ export const usePortalSettings = () => {
     fetchPortalSettings,
     updatePortalSettings,
     togglePortalActive,
-    updateTemplate,
-    updateColors,
     updateSlug,
   }
 }

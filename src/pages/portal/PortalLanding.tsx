@@ -60,8 +60,8 @@ function Template1({ settings, slug, navigate }: any) {
       className="min-h-screen relative overflow-hidden text-white flex items-center justify-center"
       dir="rtl"
       style={{
-        backgroundColor: settings.secondary_color || '#0A0F1E',
-        background: `radial-gradient(ellipse at center, ${settings.secondary_color || '#0A0F1E'} 0%, #000 100%)`,
+        backgroundColor: '#0A0F1E',
+        background: `radial-gradient(ellipse at center, #0A0F1E 0%, #000 100%)`,
       }}
     >
       <style>{animationStyles}</style>
@@ -76,7 +76,7 @@ function Template1({ settings, slug, navigate }: any) {
               width: Math.random() * 100 + 50 + 'px',
               height: Math.random() * 100 + 50 + 'px',
               borderRadius: '50%',
-              backgroundColor: settings.primary_color,
+              backgroundColor: '#FFD700',
               opacity: 0.05,
               right: Math.random() * 100 + '%',
               top: Math.random() * 100 + '%',
@@ -91,7 +91,7 @@ function Template1({ settings, slug, navigate }: any) {
         <div className="mb-8 scale-up">
           <div
             className="text-8xl glow-pulse inline-block"
-            style={{ color: settings.primary_color }}
+            style={{ color: '#FFD700' }}
           >
             ✂
           </div>
@@ -101,7 +101,7 @@ function Template1({ settings, slug, navigate }: any) {
         <h1
           className="text-6xl md:text-7xl font-bold mb-6 slide-in"
           style={{
-            backgroundImage: `linear-gradient(135deg, ${settings.primary_color}, #FFD700)`,
+            backgroundImage: `linear-gradient(135deg, #FFD700, #FFD700)`,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
@@ -149,8 +149,8 @@ function Template2({ settings, slug, navigate }: any) {
         <div
           className="p-8 md:p-16 flex flex-col justify-center items-center text-white relative border-r-4 slide-in"
           style={{
-            background: `linear-gradient(135deg, ${settings.primary_color}, ${settings.secondary_color})`,
-            borderColor: settings.accent_color || settings.primary_color,
+            background: `linear-gradient(135deg, #FFD700, #1E1E2E)`,
+            borderColor: '#FF6B6B',
           }}
         >
           <div className="text-6xl md:text-5xl mb-8">✂</div>
@@ -165,14 +165,14 @@ function Template2({ settings, slug, navigate }: any) {
         {/* Right Panel - White */}
         <div className="p-8 md:p-16 flex flex-col justify-center items-center">
           <div className="max-w-md w-full">
-            <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: settings.primary_color }}>
+            <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: '#FFD700' }}>
               ابدأ الآن
             </h2>
             
             <button
               onClick={() => navigate(`/shop/${slug}/login`)}
               className="w-full mb-4 py-4 px-6 rounded-lg font-bold text-white transition transform hover:scale-105 shadow-lg"
-              style={{ backgroundColor: settings.primary_color }}
+              style={{ backgroundColor: '#FFD700' }}
             >
               دخول الحساب
             </button>
@@ -181,9 +181,9 @@ function Template2({ settings, slug, navigate }: any) {
               onClick={() => navigate(`/shop/${slug}/register`)}
               className="w-full py-4 px-6 rounded-lg font-bold transition transform hover:scale-105"
               style={{
-                backgroundColor: settings.primary_color + '20',
-                color: settings.primary_color,
-                border: `2px solid ${settings.primary_color}`,
+                backgroundColor: '#FFD70020',
+                color: '#FFD700',
+                border: `2px solid #FFD700`,
               }}
             >
               إنشاء حساب جديد
@@ -205,7 +205,7 @@ function Template3({ settings, slug, navigate }: any) {
       <style>{animationStyles}</style>
       
       {/* Thin gold line at top */}
-      <div className="h-1" style={{ backgroundColor: settings.primary_color }} />
+      <div className="h-1" style={{ backgroundColor: '#FFD700' }} />
 
       <div className="max-w-2xl mx-auto px-4 py-24">
         {/* Elegant icon */}
@@ -215,7 +215,7 @@ function Template3({ settings, slug, navigate }: any) {
           {/* Shop name in thin elegant font */}
           <h1
             className="text-5xl md:text-6xl font-light mb-4 slide-in"
-            style={{ color: settings.primary_color, fontWeight: 300 }}
+            style={{ color: '#FFD700', fontWeight: 300 }}
           >
             {settings.shop_name}
           </h1>
@@ -227,22 +227,22 @@ function Template3({ settings, slug, navigate }: any) {
         </div>
 
         {/* Floating card with shadow */}
-        <div className="bg-white rounded-lg shadow-lg p-8 md:p-12 mb-12 border-t-4" style={{ borderColor: settings.primary_color }}>
+        <div className="bg-white rounded-lg shadow-lg p-8 md:p-12 mb-12 border-t-4" style={{ borderColor: '#FFD700' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button
               onClick={() => navigate(`/shop/${slug}/login`)}
               className="py-4 px-6 rounded-lg font-light text-lg transition border-2"
               style={{
-                borderColor: settings.primary_color,
-                color: settings.primary_color,
+                borderColor: '#FFD700',
+                color: '#FFD700',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = settings.primary_color
+                e.currentTarget.style.backgroundColor = '#FFD700'
                 e.currentTarget.style.color = 'white'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent'
-                e.currentTarget.style.color = settings.primary_color
+                e.currentTarget.style.color = '#FFD700'
               }}
             >
               دخول الحساب
