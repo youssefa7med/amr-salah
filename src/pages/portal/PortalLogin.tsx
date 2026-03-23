@@ -143,43 +143,53 @@ export function PortalLogin() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4"
+      className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${settings.primary_color}20 0%, ${settings.secondary_color}20 100%)`,
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)',
       }}
       dir="rtl"
     >
-      <div className="w-full max-w-md">
-        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-8">
-          <div className="text-center mb-8">
-            <h1
-              className="text-3xl font-bold mb-2"
-              style={{ color: settings.primary_color }}
-            >
-              {settings.shop_name}
-            </h1>
-            <p className="text-white/70">تسجيل الدخول إلى حسابك</p>
-          </div>
+      {/* Decorative gradient orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
 
+      <div className="w-full max-w-md relative z-10">
+        {/* Shop Header */}
+        <div className="text-center mb-8 space-y-2">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-lg">
+            ✂️
+          </h1>
+          <h2 className="text-3xl font-bold text-white drop-shadow-lg">
+            {settings.shop_name}
+          </h2>
+          <p className="text-cyan-300 font-medium text-sm">تسجيل الدخول إلى حسابك</p>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-gradient-to-br from-slate-800/50 via-slate-900/50 to-slate-900/50 backdrop-blur-2xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl space-y-6">
           {!showForgotPassword ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white/80">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
                   البريد الإلكتروني
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-white/30 focus:border-white/30 focus:outline-none transition"
+                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
                   placeholder="your@email.com"
                   required
                   disabled={loading}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white/80">
+              {/* Password Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
                   كلمة المرور
                 </label>
                 <div className="relative">
@@ -187,7 +197,7 @@ export function PortalLogin() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-white/30 focus:border-white/30 focus:outline-none transition pr-10"
+                    className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
                     placeholder="••••••••"
                     required
                     disabled={loading}
@@ -195,100 +205,140 @@ export function PortalLogin() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-3 text-white/50 hover:text-white/70 transition"
+                    className="absolute left-4 top-3.5 text-slate-400 hover:text-cyan-400 transition duration-200"
+                    disabled={loading}
                   >
                     {showPassword ? (
-                      <EyeOff size={18} />
+                      <EyeOff size={20} />
                     ) : (
-                      <Eye size={18} />
+                      <Eye size={20} />
                     )}
                   </button>
                 </div>
               </div>
 
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  disabled={loading}
+                  className="text-xs font-medium text-cyan-400 hover:text-cyan-300 transition duration-200 disabled:opacity-50"
+                >
+                  هل نسيت كلمة المرور؟
+                </button>
+              </div>
+
+              {/* Login Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2 rounded font-semibold text-white transition hover:shadow-lg disabled:opacity-50"
-                style={{ backgroundColor: settings.primary_color }}
+                className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 active:from-cyan-700 active:to-blue-700 transition duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                {loading ? 'جاري التحميل...' : 'دخول'}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    جاري الدخول...
+                  </span>
+                ) : (
+                  'دخول'
+                )}
               </button>
             </form>
           ) : (
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white/80">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handleForgotPassword()
+              }}
+              className="space-y-4"
+            >
+              <div className="text-center mb-4">
+                <p className="text-slate-300 text-sm">أدخل بريدك الإلكتروني ورقم هاتفك</p>
+              </div>
+
+              {/* Email Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
                   البريد الإلكتروني
                 </label>
                 <input
                   type="email"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-white/30 focus:border-white/30 focus:outline-none transition"
+                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
                   placeholder="your@email.com"
                   disabled={loading}
+                  required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2 text-white/80">
+              {/* Phone Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
                   رقم الهاتف
                 </label>
                 <input
                   type="tel"
                   value={forgotPhone}
                   onChange={(e) => setForgotPhone(e.target.value)}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded text-white placeholder-white/30 focus:border-white/30 focus:outline-none transition"
+                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
                   placeholder="01012345678"
                   dir="ltr"
                   disabled={loading}
+                  required
                 />
               </div>
 
+              {/* Reset Button */}
               <button
-                onClick={handleForgotPassword}
+                type="submit"
                 disabled={loading}
-                className="w-full py-2 rounded font-semibold text-white transition hover:shadow-lg disabled:opacity-50"
-                style={{ backgroundColor: settings.primary_color }}
+                className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 active:from-cyan-700 active:to-blue-700 transition duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                {loading ? 'جاري الإرسال...' : 'إرسال رابط إعادة التعيين'}
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    جاري الإرسال...
+                  </span>
+                ) : (
+                  'إرسال رابط إعادة التعيين'
+                )}
               </button>
 
+              {/* Back Button */}
               <button
+                type="button"
                 onClick={() => setShowForgotPassword(false)}
-                className="w-full py-2 rounded font-semibold text-white/70 border border-white/20 transition hover:bg-white/5"
+                disabled={loading}
+                className="w-full py-3 rounded-lg font-semibold text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/60 hover:bg-cyan-500/10 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 العودة
               </button>
-            </div>
+            </form>
           )}
 
-          <div className="mt-6 space-y-3">
-            {!showForgotPassword && (
-              <button
-                onClick={() => setShowForgotPassword(true)}
-                disabled={loading}
-                className="w-full text-sm transition hover:opacity-70 disabled:opacity-50"
-                style={{ color: settings.primary_color }}
-              >
-                هل نسيت كلمة المرور؟
-              </button>
-            )}
+          {/* Divider */}
+          <div className="border-t border-slate-700/50"></div>
 
-            <div className="text-center pt-3 border-t border-white/10">
-              <p className="text-white/70 text-sm">
-                ليس لديك حساب؟{' '}
-                <button
-                  onClick={() => navigate(`/shop/${slug}/register`)}
-                  className="transition hover:opacity-70 font-semibold"
-                  style={{ color: settings.primary_color }}
-                >
-                  سجل الآن
-                </button>
-              </p>
-            </div>
+          {/* Register Link */}
+          <div className="text-center">
+            <p className="text-slate-400 text-sm">
+              ليس لديك حساب؟{' '}
+              <button
+                onClick={() => navigate(`/shop/${slug}/register`)}
+                disabled={loading}
+                className="font-semibold text-cyan-400 hover:text-cyan-300 transition duration-200 disabled:opacity-50"
+              >
+                سجل الآن
+              </button>
+            </p>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-slate-500 text-xs">جميع البيانات محمية بالتشفير</p>
         </div>
       </div>
     </div>

@@ -28,7 +28,6 @@ import { AdminBilling } from './pages/AdminBilling'
 import { ShopBilling } from './pages/ShopBilling'
 
 // Portal Pages
-import { PortalLanding } from './pages/portal/PortalLanding'
 import { PortalLogin } from './pages/portal/PortalLogin'
 import { PortalRegister } from './pages/portal/PortalRegister'
 import { PortalDashboard } from './pages/portal/PortalDashboard'
@@ -323,7 +322,7 @@ function App() {
           />
 
           {/* Portal Routes - Public, Slug-based */}
-          <Route path="/shop/:slug" element={<PortalLanding />} />
+          <Route path="/shop/:slug" element={<Navigate to={`/shop/:slug/login`} replace />} />
           <Route path="/shop/:slug/login" element={<PortalLogin />} />
           <Route path="/shop/:slug/register" element={<PortalRegister />} />
           <Route path="/shop/:slug/dashboard" element={<PortalDashboard />} />

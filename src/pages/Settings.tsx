@@ -347,17 +347,11 @@ export const Settings: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-3 bg-gray-800/30 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-400">حالة البوابة</p>
-                <p className="text-lg font-semibold text-white">
-                  {portalSettings?.is_active ? '✅ مفعّلة' : '❌ معطّلة'}
-                </p>
-              </div>
-              <div
-                className="w-12 h-12 rounded-lg"
-                style={{ backgroundColor: '#FFD700' }}
-              />
+            <div>
+              <p className="text-xs text-gray-400">حالة البوابة</p>
+              <p className="text-lg font-semibold text-white">
+                {portalSettings?.is_active ? '✅ مفعّلة' : '❌ معطّلة'}
+              </p>
             </div>
             {/* Portal Link - Professional UI */}
             <div>
