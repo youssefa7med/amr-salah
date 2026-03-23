@@ -78,15 +78,26 @@ export function PortalRegister() {
         return
       }
 
-      // Call signUp
-      await signUp(
+      // Call signUp with slug for email redirect
+      const result = await signUp(
         formData.email,
         formData.password,
         formData.fullName,
         formData.phone,
         formData.birthDate,
-        settings.shop_id
+        settings.shop_id,
+        slug // Pass slug for emailRedirectTo
       )
+
+      // Check if email confirmation is required
+      if (result?.requiresEmailConfirmation) {
+        toast.success('تم إرسال رسالة تأكيد لبريدك الإلكتروني\nيرجى تأكيده ثم تسجيل الدخول')
+        // Redirect to login page after 2 seconds
+        setTimeout(() => {
+          navigate(`/shop/${slug}/login`, { replace: true })
+        }, 2000)
+        return
+      }
 
       // If successful, auto-login and redirect to dashboard
       toast.success('تم إنشاء الحساب بنجاح! جاري تسجيل الدخول...')
@@ -97,10 +108,12 @@ export function PortalRegister() {
       }, 1000)
     } catch (err: any) {
       console.error('Registration error:', err)
-      let errorMessage = err.message || 'خطأ في التسجيل'
+      let errorMessage = err.message || 'خطأ في الاتصال - يرجى المحاولة لاحقاً'
       
       // Map common error messages to Arabic
-      if (errorMessage.includes('already registered') || errorMessage.includes('User already exists')) {
+      if (errorMessage.includes('Email not confirmed')) {
+        errorMessage = 'تم إرسال رسالة تأكيد لبريدك الإلكتروني، يرجى تأكيده ثم تسجيل الدخول'
+      } else if (errorMessage.includes('already registered') || errorMessage.includes('User already exists')) {
         errorMessage = 'هذا البريد الإلكتروني مسجل بالفعل'
       } else if (errorMessage.includes('duplicate key')) {
         if (errorMessage.includes('email')) {
@@ -112,8 +125,8 @@ export function PortalRegister() {
         }
       } else if (errorMessage.includes('unique constraint')) {
         errorMessage = 'هذه البيانات مسجلة بالفعل'
-      } else if (!['البريد', 'كلمة', 'حساب', 'خطأ', 'هاتف'].some(word => errorMessage.includes(word))) {
-        errorMessage = 'خطأ في الاتصال - يرجى المحاولة لاحقاً'
+      } else if (errorMessage.includes('خطأ في الاتصال') || err.status === 0) {
+        errorMessage = 'خطأ في الاتصال - يرجى التحقق من اتصالك بالإنترنت وحاول مجدداً'
       }
       
       toast.error(errorMessage)

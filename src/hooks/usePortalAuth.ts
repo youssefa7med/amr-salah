@@ -355,24 +355,35 @@ export function usePortalAuth(expectedShopId?: string) {
     fullName: string,
     phone: string,
     birthDate: string,
-    shopId: string
+    shopId: string,
+    slug?: string
   ) => {
     setState(prev => ({ ...prev, loading: true, error: null }))
     
     try {
+      // Build redirect URL for email confirmation
+      const redirectTo = slug ? `${window.location.origin}/shop/${slug}/dashboard` : undefined
+
       // Create auth user with customer role
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectTo,
           data: {
             role: 'customer',
+            shop_id: shopId,
+            full_name: fullName,
+            phone: phone,
           },
         },
       })
 
       if (authError) throw authError
       if (!authData.user) throw new Error('Failed to create user')
+
+      // Check if email confirmation is required (email_confirmed_at is null and needsEmailConfirmation is true)
+      const requiresEmailConfirmation = authData.user.email_confirmed_at === null
 
       // Create customer_users record
       const { data: customerData, error: customerError } = await supabase
@@ -384,7 +395,7 @@ export function usePortalAuth(expectedShopId?: string) {
           email,
           phone,
           birth_date: birthDate,
-          verified: false,
+          verified: requiresEmailConfirmation ? false : false, // Mark as not verified if email confirmation is required
         })
         .select()
         .single()
@@ -430,7 +441,30 @@ export function usePortalAuth(expectedShopId?: string) {
         }
       }
 
-      // Auto-login after signup
+      // Auto-login after signup only if email confirmation is not required
+      if (requiresEmailConfirmation) {
+        // Email confirmation required - don't auto-login
+        // Return success but indicate that email confirmation is needed
+        // Clear any cached session
+        clearPortalSession()
+        if (mountedRef.current) {
+          setState({
+            user: null,
+            session: null,
+            customerId: null,
+            shopId: null,
+            customerName: null,
+            email: null,
+            phone: null,
+            clientId: null,
+            loading: false,
+            error: null,
+          })
+        }
+        // Return with a flag indicating email confirmation is required
+        return { ...customerData, requiresEmailConfirmation: true }
+      }
+
       await signIn(email, password, shopId)
       
       // Get the final customer data for portal session
@@ -451,7 +485,7 @@ export function usePortalAuth(expectedShopId?: string) {
         }
       }
       
-      return customerData
+      return { ...customerData, requiresEmailConfirmation: false }
     } catch (err: any) {
       console.error('Sign up error:', err)
       let friendlyMessage = err.message
@@ -469,8 +503,10 @@ export function usePortalAuth(expectedShopId?: string) {
         friendlyMessage = 'هذا البريد الإلكتروني مسجل بالفعل'
       } else if (err.message?.includes('unique constraint')) {
         friendlyMessage = 'هذه البيانات مسجلة بالفعل'
-      } else if (!friendlyMessage) {
-        friendlyMessage = 'حدث خطأ أثناء التسجيل، يرجى المحاولة لاحقاً'
+      } else if (err.message?.includes('Email not confirmed')) {
+        friendlyMessage = 'تم إرسال رسالة تأكيد لبريدك الإلكتروني، يرجى تأكيده ثم تسجيل الدخول'
+      } else if (!friendlyMessage || err.status === 0 || err.code === 'connection_error') {
+        friendlyMessage = 'خطأ في الاتصال - يرجى التحقق من اتصالك بالإنترنت وحاول مجدداً'
       }
       
       if (mountedRef.current) {
