@@ -276,20 +276,35 @@ export const Settings: React.FC = () => {
             </div>
           </div>
         ) : isPortalEditing ? (
-          <div className="space-y-4 md:space-y-5 p-3 md:p-4 bg-gray-800/20 rounded-lg">\n            {/* Portal Active Toggle */}
+          <div className="space-y-4 md:space-y-5 p-3 md:p-4 bg-gray-800/20 rounded-lg">
+            {/* Portal Active Toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
               <span className="text-gray-300">تفعيل البوابة</span>
               <button
+                type="button"
                 onClick={() => setPortalFormData(prev => ({ ...prev, is_active: !prev.is_active }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                  portalFormData.is_active ? 'bg-green-500' : 'bg-gray-600'
-                }`}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  height: '24px',
+                  width: '44px',
+                  alignItems: 'center',
+                  borderRadius: '9999px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: portalFormData.is_active ? '#22c55e' : '#4b5563',
+                  transition: 'background-color 0.2s'
+                }}
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                    portalFormData.is_active ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
+                <span style={{
+                  display: 'inline-block',
+                  height: '16px',
+                  width: '16px',
+                  borderRadius: '9999px',
+                  backgroundColor: 'white',
+                  transform: portalFormData.is_active ? 'translateX(24px)' : 'translateX(4px)',
+                  transition: 'transform 0.2s'
+                }} />
               </button>
             </div>
 
@@ -436,7 +451,7 @@ export const Settings: React.FC = () => {
             <div>
               <label className="block text-sm md:text-base text-gray-300 mb-2 font-semibold">معرّف البوابة (slug)</label>
               <div className="space-y-2 md:flex md:gap-2">
-                <span className="hidden md:block px-3 py-2 bg-gray-800/50 text-gray-400 rounded-lg text-sm whitespace-nowrap">https://yourapp.com/shop/</span>
+                <span className="hidden md:block px-3 py-2 bg-gray-800/50 text-gray-400 rounded-lg text-sm whitespace-nowrap">{window.location.origin}/shop/</span>
                 <input
                   type="text"
                   value={portalFormData.portal_slug}
@@ -446,7 +461,7 @@ export const Settings: React.FC = () => {
                   dir="ltr"
                 />
               </div>
-              <div className="md:hidden mt-2 text-xs text-gray-500">https://yourapp.com/shop/{portalFormData.portal_slug || 'my-shop'}</div>
+              <div className="md:hidden mt-2 text-xs text-gray-500">{window.location.origin}/shop/{portalFormData.portal_slug || 'my-shop'}</div>
             </div>
 
             {/* Color Pickers */}
