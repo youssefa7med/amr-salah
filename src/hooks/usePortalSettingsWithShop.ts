@@ -26,6 +26,8 @@ export function usePortalSettingsWithShop(slug?: string) {
       setLoading(true)
       setError(null)
 
+      console.log('🔍 Fetching portal settings for slug:', portalSlug)
+
       // First check if portal settings exist with this slug
       const { data: portalData, error: portalErr } = await supabase
         .from('portal_settings')
@@ -34,19 +36,27 @@ export function usePortalSettingsWithShop(slug?: string) {
         .single()
 
       if (portalErr) {
-        console.error('Error fetching portal settings:', portalErr)
+        console.error('❌ Error fetching portal settings:', portalErr)
+        console.log('📊 Query params - slug:', portalSlug)
         setError('البوابة غير موجودة')
         return null
       }
 
       if (!portalData) {
+        console.warn('⚠️ Port data is null for slug:', portalSlug)
         setError('البوابة غير موجودة')
         return null
       }
 
+      console.log('✅ Portal data found:', {
+        slug: portalData.portal_slug,
+        is_active: portalData.is_active,
+        shop_id: portalData.shop_id,
+      })
+
       // Check if portal is active
       if (!portalData.is_active) {
-        console.warn('Portal exists but is not active:', portalSlug)
+        console.warn('🔒 Portal exists but is not active:', portalSlug)
         setError('البوابة معطلة حالياً')
         return null
       }
@@ -57,6 +67,8 @@ export function usePortalSettingsWithShop(slug?: string) {
         .select('name')
         .eq('id', portalData.shop_id)
         .single()
+
+      console.log('✅ Shop found:', shopData?.name)
 
       const settingsWithShop: PortalSettingsWithShop = {
         id: portalData.id,
@@ -76,7 +88,7 @@ export function usePortalSettingsWithShop(slug?: string) {
       setSettings(settingsWithShop)
       return settingsWithShop
     } catch (err) {
-      console.error('Error in fetchSettings:', err)
+      console.error('💥 Error in fetchSettings:', err)
       setError('حدث خطأ في تحميل البيانات')
       return null
     } finally {

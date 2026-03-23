@@ -95,9 +95,12 @@ export const usePortalSettings = () => {
         throw new Error('معرّف المحل غير متوفر')
       }
 
+      console.log('💾 Updating portal settings:', updates)
+
       // If portal settings don't exist, create them first
       let settingsToUpdate = portalSettings
       if (!settingsToUpdate) {
+        console.log('📝 Portal settings not found, creating defaults...')
         await createDefaultPortalSettings()
         // Fetch the newly created settings
         await fetchPortalSettings()
@@ -117,6 +120,7 @@ export const usePortalSettings = () => {
 
       // Check if slug is being changed and if it's unique
       if (updates.portal_slug && updates.portal_slug !== settingsToUpdate.portal_slug) {
+        console.log('🔍 Checking if slug is unique:', updates.portal_slug)
         const { data: existingSlug, error: slugError } = await supabase
           .from('portal_settings')
           .select('id')
@@ -130,6 +134,8 @@ export const usePortalSettings = () => {
         }
       }
 
+      console.log('✍️ Updating ID:', settingsToUpdate.id, 'with data:', updates)
+
       const { data, error } = await supabase
         .from('portal_settings')
         .update({
@@ -140,13 +146,17 @@ export const usePortalSettings = () => {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Update error:', error)
+        throw error
+      }
 
+      console.log('✅ Update successful:', data)
       setPortalSettings(data as PortalSettings)
       toast.success('تم حفظ إعدادات البوابة')
       return data as PortalSettings
     } catch (err: any) {
-      console.error('Error updating portal settings:', err)
+      console.error('💥 Error updating portal settings:', err)
       toast.error(err.message)
       throw err
     }
