@@ -243,32 +243,27 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
         // Always lookup client by phone from auth user
         // (customerId is auth user ID, not client ID - don't use it for lookups)
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user?.email) {
+        if (!user?.id) {
           setError('لم يتم العثور على بيانات المستخدم')
           return null
         }
 
-        // Extract phone from email (format: phone@shopId.portal) OR from user metadata
-        let extractedPhone = ''
-        
-        // Try 1: Extract from email
-        if (user.email.includes('@')) {
-          extractedPhone = user.email.split('@')[0]
-        }
-        
-        // Try 2: Fall back to user metadata if available
-        if (!extractedPhone || extractedPhone.includes(':')) {
-          extractedPhone = user.user_metadata?.phone || user.phone || ''
-          console.log('⚠️ Using metadata phone:', extractedPhone)
-        }
-        
-        clientPhone = extractedPhone
-        console.log('📞 Extracted client phone:', clientPhone, 'from email:', user.email)
+        // Get phone from portal_users record (more reliable than email parsing)
+        const { data: portalUserData, error: portalErr } = await supabase
+          .from('portal_users')
+          .select('phone')
+          .eq('id', user.id)
+          .eq('shop_id', shopId)
+          .single()
 
-        if (!clientPhone) {
-          setError('لم يتم العثور على رقم الهاتف')
+        if (portalErr || !portalUserData?.phone) {
+          console.error('❌ Portal user record not found:', { portalErr, userId: user.id, shopId })
+          setError('لم يتم العثور على بيانات المستخدم في النظام')
           return null
         }
+
+        clientPhone = portalUserData.phone
+        console.log('📞 Found portal user phone:', clientPhone)
 
         // Get client record by phone + shop_id
         const { data: clientData, error: clientErr } = await supabase
@@ -279,8 +274,8 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
           .single()
 
         if (clientErr || !clientData) {
-          console.error('❌ Client record not found:', { clientErr, clientPhone, shopId, userEmail: user.email })
-          setError('بيانات العميل غير موجودة. حاول تسجيل الخروج وإعادة تسجيل الدخول')
+          console.error('❌ Client record not found:', { clientErr, clientPhone, shopId })
+          setError('بيانات العميل غير موجودة')
           return null
         }
 
