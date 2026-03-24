@@ -248,22 +248,30 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
           return null
         }
 
-        // Get phone from portal_users record (more reliable than email parsing)
+        // Get phone from portal_users record (id is unique, don't need shop_id filter)
+        // RLS might block shop_id filter, so just query by user id
         const { data: portalUserData, error: portalErr } = await supabase
           .from('portal_users')
-          .select('phone')
+          .select('phone, shop_id')
           .eq('id', user.id)
-          .eq('shop_id', shopId)
           .single()
 
         if (portalErr || !portalUserData?.phone) {
-          console.error('❌ Portal user record not found:', { portalErr, userId: user.id, shopId })
-          setError('لم يتم العثور على بيانات المستخدم في النظام')
-          return null
+          console.error('❌ Portal user record not found:', { portalErr, userId: user.id })
+          console.log('⚠️ Trying alternative lookup...')
+          
+          // Fallback: Try to get phone from auth user metadata
+          const phone = user.user_metadata?.phone || user.phone
+          if (!phone) {
+            setError('لم يتم العثور على رقم الهاتف')
+            return null
+          }
+          clientPhone = phone as string
+          console.log('📞 Using phone from auth metadata:', clientPhone)
+        } else {
+          clientPhone = portalUserData.phone
+          console.log('📞 Found portal user phone:', clientPhone)
         }
-
-        clientPhone = portalUserData.phone
-        console.log('📞 Found portal user phone:', clientPhone)
 
         // Get client record by phone + shop_id
         const { data: clientData, error: clientErr } = await supabase
