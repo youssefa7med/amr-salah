@@ -9,8 +9,17 @@
 -- 2. READ clients table for duplicate phone check
 -- ============================================================================
 
--- Step 1: Add policies to allow portal users to insert their own client record
+-- FIRST: Check the exact column names in the clients table
 -- ============================================================================
+-- Run this to see all columns and their actual names (case-sensitive)
+SELECT 
+  column_name,
+  data_type,
+  is_nullable,
+  column_default
+FROM information_schema.columns
+WHERE table_name = 'clients'
+ORDER BY ordinal_position;
 
 -- Drop existing portal user client policies if they exist
 DROP POLICY IF EXISTS "portal_users_insert_own_client" ON clients;
@@ -58,23 +67,23 @@ INSERT INTO clients (
   shop_id, 
   name, 
   phone, 
-  totalvisits, 
-  totalspent, 
-  isvip, 
+  "totalVisits", 
+  "totalSpent", 
+  "isVIP", 
   notes, 
-  createdat, 
-  updatedat
+  "createdAt", 
+  "updatedAt"
 )
 SELECT 
   pu.shop_id,
   COALESCE(pu.name, pu.phone) as name,
   pu.phone,
-  0 as totalvisits,
-  0 as totalspent,
-  false as isvip,
+  0 as "totalVisits",
+  0 as "totalSpent",
+  false as "isVIP",
   'مسجل عبر البوابة الإلكترونية' as notes,
-  pu.created_at as createdat,
-  pu.created_at as updatedat
+  pu.created_at as "createdAt",
+  pu.created_at as "updatedAt"
 FROM portal_users pu
 WHERE NOT EXISTS (
   SELECT 1 FROM clients c 
