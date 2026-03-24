@@ -4,50 +4,61 @@ import { supabase } from '@/db/supabase'
 export interface VisitHistory {
   id: string
   visitDate: string
-  serviceName: string
-  barberName?: string
-  amount: number
+  servicesCount: number
+  totalSpent: number
   notes?: string
-  status: 'completed' | 'cancelled'
 }
 
-export function usePortalHistory(shopId?: string, customerId?: string) {
+export function usePortalHistory(shopId?: string, _customerId?: string, slug?: string) {
   const [history, setHistory] = useState<VisitHistory[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchHistory = useCallback(async () => {
-    if (!customerId || !shopId) return
+    if (!shopId || !slug) return
 
     setLoading(true)
     try {
-      // Fetch visit logs for customer
-      const { data, error: err } = await supabase
-        .from('visit_logs')
-        .select(`
-          id,
-          visit_date,
-          service_name,
-          barber_name,
-          amount_paid,
-          notes,
-          status
-        `)
-        .eq('customer_user_id', customerId)
+      // Step 1: Get customer phone from session
+      const session = JSON.parse(localStorage.getItem(`portal_session_${slug}`) || '{}')
+      const customerPhone = session.phone
+
+      if (!customerPhone) {
+        throw new Error('Customer phone not found in session')
+      }
+
+      // Step 2: Find clientId from clients table using phone
+      const { data: clientData, error: clientErr } = await supabase
+        .from('clients')
+        .select('id')
         .eq('shop_id', shopId)
-        .order('visit_date', { ascending: false })
+        .eq('phone', customerPhone)
+        .maybeSingle()
+
+      if (clientErr) throw clientErr
+      if (!clientData) {
+        // Client not registered yet, no history
+        setHistory([])
+        return
+      }
+
+      // Step 3: Fetch visit logs using correct columns
+      const { data: visitLogs, error: err } = await supabase
+        .from('visit_logs')
+        .select('id, visitDate, servicesCount, totalSpent, notes')
+        .eq('shop_id', shopId)
+        .eq('clientId', clientData.id)
+        .order('visitDate', { ascending: false })
 
       if (err) throw err
 
       setHistory(
-        data?.map(log => ({
+        visitLogs?.map(log => ({
           id: log.id,
-          visitDate: log.visit_date,
-          serviceName: log.service_name,
-          barberName: log.barber_name,
-          amount: log.amount_paid || 0,
-          notes: log.notes,
-          status: log.status || 'completed'
+          visitDate: log.visitDate,
+          servicesCount: log.servicesCount || 0,
+          totalSpent: log.totalSpent || 0,
+          notes: log.notes
         })) || []
       )
     } catch (err) {
@@ -56,8 +67,7 @@ export function usePortalHistory(shopId?: string, customerId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [customerId, shopId])
-
+  }, [shopId, slug])
   useEffect(() => {
     fetchHistory()
   }, [fetchHistory])
@@ -66,8 +76,8 @@ export function usePortalHistory(shopId?: string, customerId?: string) {
   const getStats = useCallback(() => {
     return {
       totalVisits: history.length,
-      totalSpent: history.reduce((sum, log) => sum + log.amount, 0),
-      averageSpent: history.length > 0 ? history.reduce((sum, log) => sum + log.amount, 0) / history.length : 0,
+      totalSpent: history.reduce((sum, log) => sum + log.totalSpent, 0),
+      averageSpent: history.length > 0 ? history.reduce((sum, log) => sum + log.totalSpent, 0) / history.length : 0,
       lastVisit: history[0]?.visitDate || null
     }
   }, [history])
@@ -80,3 +90,4 @@ export function usePortalHistory(shopId?: string, customerId?: string) {
     getStats
   }
 }
+

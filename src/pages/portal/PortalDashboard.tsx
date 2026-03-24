@@ -15,7 +15,7 @@ export function PortalDashboard() {
   const { settings, loading: settingsLoading } = usePortalSettingsWithShop(slug)
 
   // Stats
-  const { stats, loading: statsLoading } = usePortalDashboardStats(customer?.shop_id, customer?.id)
+  const { stats, loading: statsLoading } = usePortalDashboardStats(customer?.shop_id, customer?.id, slug)
 
   const [loggingOut, setLoggingOut] = useState(false)
 

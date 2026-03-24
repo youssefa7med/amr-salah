@@ -14,7 +14,7 @@ export interface DashboardStats {
   upcomingBookingsCount: number
 }
 
-export function usePortalDashboardStats(shopId?: string, customerId?: string) {
+export function usePortalDashboardStats(shopId?: string, customerId?: string, slug?: string) {
   const [stats, setStats] = useState<DashboardStats>({
     totalVisits: 0,
     totalSpent: 0,
@@ -24,64 +24,94 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchStats = useCallback(async () => {
-    if (!customerId || !shopId) return
+    if (!customerId || !shopId || !slug) return
 
     setLoading(true)
     try {
-      // Get total visits and spent from visit_logs
+      // Step 1: Get customer phone from session
+      const session = JSON.parse(localStorage.getItem(`portal_session_${slug}`) || '{}')
+      const customerPhone = session.phone
+
+      if (!customerPhone) {
+        throw new Error('Customer phone not found in session')
+      }
+
+      // Step 2: Find clientId from clients table using phone
+      const { data: clientData, error: clientErr } = await supabase
+        .from('clients')
+        .select('id, totalVisits, totalSpent')
+        .eq('shop_id', shopId)
+        .eq('phone', customerPhone)
+        .maybeSingle()
+
+      if (clientErr) throw clientErr
+      if (!clientData) {
+        // Client not registered yet
+        setStats({
+          totalVisits: 0,
+          totalSpent: 0,
+          upcomingBookingsCount: 0
+        })
+        return
+      }
+
+      // Step 3: Get visit logs using correct columns
       const { data: visitLogs, error: visitErr } = await supabase
         .from('visit_logs')
-        .select('amount_paid, visit_date')
-        .eq('customer_user_id', customerId)
+        .select('totalSpent, visitDate')
         .eq('shop_id', shopId)
-        .eq('status', 'completed')
+        .eq('clientId', clientData.id)
+        .order('visitDate', { ascending: false })
 
       if (visitErr) throw visitErr
 
-      const totalVisits = visitLogs?.length || 0
-      const totalSpent = visitLogs?.reduce((sum, log) => sum + (log.amount_paid || 0), 0) || 0
-      const lastVisit = visitLogs && visitLogs.length > 0 
-        ? visitLogs[0]?.visit_date 
-        : undefined
+      const totalVisits = visitLogs?.length || clientData.totalVisits || 0
+      const totalSpent = visitLogs?.reduce((sum, v) => sum + (v.totalSpent || 0), 0) || clientData.totalSpent || 0
+      const lastVisit = visitLogs && visitLogs.length > 0 ? visitLogs[0]?.visitDate : undefined
 
-      // Get next upcoming booking
-      const now = new Date().toISOString().split('T')[0]
+      // Step 4: Get next upcoming booking
+      const now = new Date().toISOString()
       const { data: nextBookings, error: bookingErr } = await supabase
-        .from('customer_bookings')
-        .select(`
-          id,
-          booking_date,
-          booking_time,
-          service_id,
-          services(nameAr)
-        `)
-        .eq('customer_user_id', customerId)
+        .from('bookings')
+        .select('id, bookingDate, bookingTime, serviceId')
         .eq('shop_id', shopId)
-        .eq('status', 'pending')
-        .gte('booking_date', now)
-        .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true })
+        .eq('clientPhone', customerPhone)
+        .in('status', ['pending', 'confirmed'])
+        .gte('bookingDate', now)
+        .order('bookingDate', { ascending: true })
+        .order('bookingTime', { ascending: true })
         .limit(1)
 
       if (bookingErr) throw bookingErr
 
-      // Get all upcoming bookings count
-      const { data: allUpcoming, error: countErr } = await supabase
-        .from('customer_bookings')
+      // Step 5: Get all upcoming bookings count
+      const { count: upcomingCount, error: countErr } = await supabase
+        .from('bookings')
         .select('id', { count: 'exact', head: true })
-        .eq('customer_user_id', customerId)
         .eq('shop_id', shopId)
-        .eq('status', 'pending')
-        .gte('booking_date', now)
+        .eq('clientPhone', customerPhone)
+        .in('status', ['pending', 'confirmed'])
+        .gte('bookingDate', now)
 
       if (countErr) throw countErr
+
+      // Get service name for next booking
+      let serviceName = ''
+      if (nextBookings && nextBookings.length > 0) {
+        const { data: serviceData } = await supabase
+          .from('services')
+          .select('nameAr')
+          .eq('id', nextBookings[0].serviceId)
+          .single()
+        serviceName = serviceData?.nameAr || 'خدمة'
+      }
 
       const nextBooking = nextBookings && nextBookings.length > 0 
         ? {
             id: nextBookings[0].id,
-            bookingDate: nextBookings[0].booking_date,
-            bookingTime: nextBookings[0].booking_time,
-            serviceName: (nextBookings[0].services as any)?.nameAr || 'خدمة'
+            bookingDate: nextBookings[0].bookingDate,
+            bookingTime: nextBookings[0].bookingTime,
+            serviceName
           }
         : undefined
 
@@ -90,7 +120,7 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string) {
         totalSpent,
         nextBooking,
         lastVisit,
-        upcomingBookingsCount: allUpcoming?.length || 0
+        upcomingBookingsCount: upcomingCount || 0
       })
     } catch (err) {
       console.error('Error fetching dashboard stats:', err)
@@ -98,7 +128,7 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string) {
     } finally {
       setLoading(false)
     }
-  }, [customerId, shopId])
+  }, [customerId, shopId, slug])
 
   useEffect(() => {
     fetchStats()

@@ -91,12 +91,10 @@ export function PortalHistory() {
   const { settings, loading: settingsLoading } = usePortalSettingsWithShop(slug)
 
   // History data
-  const { history, loading: historyLoading, error: historyError, getStats } = usePortalHistory(customer?.shop_id, customer?.id)
+  const { history, loading: historyLoading, error: historyError, getStats } = usePortalHistory(customer?.shop_id, customer?.id, slug)
 
   // Filters & Sorting
   const [sortBy, setSortBy] = useState<SortType>('date-desc')
-  const [serviceFilter, setServiceFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'cancelled'>('all')
   const [dateFromFilter, setDateFromFilter] = useState('')
   const [dateToFilter, setDateToFilter] = useState('')
 
@@ -123,18 +121,6 @@ export function PortalHistory() {
   const filteredHistory = useMemo(() => {
     let filtered = [...history]
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(h => h.status === statusFilter)
-    }
-
-    // Filter by service name
-    if (serviceFilter) {
-      filtered = filtered.filter(h =>
-        h.serviceName.toLowerCase().includes(serviceFilter.toLowerCase())
-      )
-    }
-
     // Filter by date range
     if (dateFromFilter) {
       filtered = filtered.filter(h => new Date(h.visitDate) >= new Date(dateFromFilter))
@@ -152,15 +138,15 @@ export function PortalHistory() {
         filtered.sort((a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime())
         break
       case 'amount-desc':
-        filtered.sort((a, b) => b.amount - a.amount)
+        filtered.sort((a, b) => b.totalSpent - a.totalSpent)
         break
       case 'amount-asc':
-        filtered.sort((a, b) => a.amount - b.amount)
+        filtered.sort((a, b) => a.totalSpent - b.totalSpent)
         break
     }
 
     return filtered
-  }, [history, sortBy, serviceFilter, statusFilter, dateFromFilter, dateToFilter])
+  }, [history, sortBy, dateFromFilter, dateToFilter])
 
   const stats = getStats()
   const primaryColor = settings?.primary_color || '#FFD700'
@@ -279,32 +265,6 @@ export function PortalHistory() {
               </select>
             </div>
 
-            {/* Status Filter */}
-            <div>
-              <label className="block text-white/70 text-sm font-bold mb-2">{t.status}</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-white/30 transition"
-              >
-                <option value="all">{t.all}</option>
-                <option value="completed">{t.completed}</option>
-                <option value="cancelled">{t.cancelled}</option>
-              </select>
-            </div>
-
-            {/* Service Filter */}
-            <div>
-              <label className="block text-white/70 text-sm font-bold mb-2">{t.service}</label>
-              <input
-                type="text"
-                value={serviceFilter}
-                onChange={(e) => setServiceFilter(e.target.value)}
-                placeholder={t.searchService}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-white/30 transition"
-              />
-            </div>
-
             {/* Date From */}
             <div>
               <label className="block text-white/70 text-sm font-bold mb-2">{t.dateFrom}</label>
@@ -329,11 +289,9 @@ export function PortalHistory() {
           </div>
 
           {/* Clear Filters */}
-          {(serviceFilter || statusFilter !== 'all' || dateFromFilter || dateToFilter) && (
+          {(dateFromFilter || dateToFilter) && (
             <button
               onClick={() => {
-                setServiceFilter('')
-                setStatusFilter('all')
                 setDateFromFilter('')
                 setDateToFilter('')
               }}
@@ -356,28 +314,18 @@ export function PortalHistory() {
         ) : (
           <div className="space-y-4">
             {filteredHistory.map(visit => {
-              const statusBg = visit.status === 'completed' 
-                ? 'bg-green-900/30' 
-                : 'bg-red-900/30'
-              const statusText = visit.status === 'completed' 
-                ? 'text-green-400' 
-                : 'text-red-400'
-
               return (
                 <div key={visit.id} className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/[0.08] transition">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
                         <Scissors size={20} />
-                        {visit.serviceName}
+                        {visit.servicesCount} {t.service}
                       </h3>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}>
-                      {visit.status === 'completed' ? t.completed : t.cancelled}
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid md:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-white/70">
                       <Calendar size={16} />
                       <div>
@@ -393,22 +341,10 @@ export function PortalHistory() {
                       <div>
                         <div className="text-white/50 text-xs">{t.amount}</div>
                         <div className="text-white font-semibold">
-                          {visit.amount} ج.م
+                          {visit.totalSpent} ج.م
                         </div>
                       </div>
                     </div>
-
-                    {visit.barberName && (
-                      <div className="flex items-center gap-2 text-white/70">
-                        <Scissors size={16} />
-                        <div>
-                          <div className="text-white/50 text-xs">{t.barber}</div>
-                          <div className="text-white font-semibold">
-                            {visit.barberName}
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {visit.notes && (
                       <div className="flex items-start gap-2 text-white/70">
