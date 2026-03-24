@@ -231,13 +231,64 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
           return null
         }
 
+        // Get actual client record ID from clients table (not auth UID)
+        let actualClientId = clientId
+        let clientPhone = ''
+        let clientName = ''
+
+        if (!actualClientId) {
+          // Fetch client record by auth user's phone
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user?.email) {
+            setError('لم يتم العثور على بيانات المستخدم')
+            return null
+          }
+
+          // Extract phone from email (format: phone@shopId.portal)
+          const emailParts = user.email.split('@')
+          clientPhone = emailParts[0]
+
+          // Get client record by phone + shop_id
+          const { data: clientData, error: clientErr } = await supabase
+            .from('clients')
+            .select('id, phone, name')
+            .eq('shop_id', shopId)
+            .eq('phone', clientPhone)
+            .single()
+
+          if (clientErr || !clientData) {
+            console.error('❌ Client record not found:', { clientErr, clientPhone, shopId })
+            setError('بيانات العميل غير موجودة. حاول تسجيل الخروج وإعادة تسجيل الدخول')
+            return null
+          }
+
+          actualClientId = clientData.id
+          clientPhone = clientData.phone
+          clientName = clientData.name
+        } else {
+          // Fetch client details by ID
+          const { data: clientData, error: clientErr } = await supabase
+            .from('clients')
+            .select('phone, name')
+            .eq('id', actualClientId)
+            .single()
+
+          if (clientErr || !clientData) {
+            setError('بيانات العميل غير موجودة')
+            return null
+          }
+
+          clientPhone = clientData.phone
+          clientName = clientData.name
+        }
+
         // Create booking in bookings table (for staff)
         const bookingData = {
           shop_id: shopId,
-          clientid: clientId || customerId,
-          clientname: '', // Will be fetched from customer profile
-          clientphone: '', // Will be fetched from customer profile
-          customer_phone: '', // Will be fetched from customer profile
+          clientid: actualClientId,  // ← USE ACTUAL CLIENT RECORD ID
+          clientname: clientName,
+          clientphone: clientPhone,
+          customer_phone: clientPhone,
           barberid: barberId || null,
           barbername: barberId ? barbers.find(b => b.id === barberId)?.name || null : null,
           bookingtime: `${bookingDate}T${bookingTime}:00`,
@@ -250,12 +301,17 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
           updatedat: new Date().toISOString(),
         }
 
+        console.log('📝 Creating booking with:', { actualClientId, clientPhone, clientName })
+
         const { data: bookings, error: bookingErr } = await supabase
           .from('bookings')
           .insert([bookingData])
           .select()
 
-        if (bookingErr) throw bookingErr
+        if (bookingErr) {
+          console.error('❌ Booking error:', bookingErr)
+          throw bookingErr
+        }
         if (!bookings || bookings.length === 0) {
           throw new Error('Failed to create booking')
         }
