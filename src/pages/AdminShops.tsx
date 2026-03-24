@@ -147,23 +147,7 @@ export const AdminShops = () => {
         return
       }
 
-      // Slug generation function (non-hardcoded, dynamic)
-      const generateSlug = (name: string): string => {
-        const randomNum = Math.floor(1000 + Math.random() * 9000)
-        const slug = name
-          .toLowerCase()
-          .replace(/[\u0600-\u06FF]/g, '') // remove Arabic chars
-          .replace(/\s+/g, '-')
-          .replace(/[^\w-]/g, '')
-          .trim()
-        // If slug is empty (all Arabic), use 'shop' as base
-        const base = slug.length > 0 ? slug.substring(0, 20) : 'shop'
-        return `${base}-${randomNum}`
-      }
-
-      const newSlug = generateSlug(formData.name)
-
-      // Create shop WITH slug field
+      // Create shop WITHOUT slug (will be set after we get the ID)
       const { data: shopData, error: shopError } = await supabase
         .from('shops')
         .insert([
@@ -174,7 +158,6 @@ export const AdminShops = () => {
             subscription_end_date: formData.subscription_end_date,
             subscription_status: 'active',
             auth_user_id: authData.user?.id,
-            slug: newSlug,  // ← DYNAMIC SLUG SET DURING CREATION
           },
         ])
         .select()
@@ -182,13 +165,24 @@ export const AdminShops = () => {
       if (shopError) throw shopError
 
       const newShopId = shopData?.[0]?.id
-      
-      // Auto-generate slug from shop name and create portal settings
+
+      // Set slug = shop ID (permanent, unique, not random)
       if (newShopId) {
-        // Create portal settings for new shop
+        const { error: slugError } = await supabase
+          .from('shops')
+          .update({ slug: newShopId })
+          .eq('id', newShopId)
+
+        if (slugError) {
+          console.warn('Warning: Could not set shop slug:', slugError)
+        }
+      }
+
+      // Create portal settings for new shop
+      if (newShopId) {
         const { error: portalError } = await supabase.from('portal_settings').insert({
           shop_id: newShopId,
-          portal_slug: newSlug,
+          portal_slug: newShopId,  // Use shop ID as permanent slug
           is_active: false,
           template_id: 1,
           primary_color: '#D4AF37',
