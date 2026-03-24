@@ -366,7 +366,7 @@ export function PortalLogin() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-slate-500 text-xs">جميع البيانات محمية بالتشفير</p>
+          <p className="text-slate-500 text-xs">© 2026 YousefTech • 01000139417</p>
         </div>
       </div>
     </div>

@@ -244,7 +244,7 @@ export default function Login() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="text-center text-white/30 text-xs mt-10 font-light"
         >
-          © 2026 Barber Shop Management System. {t('common.allRightsReserved') || 'All rights reserved.'}
+          🔒 تطوير وحماية بواسطة YousefTech
         </motion.p>
       </motion.div>
     </div>

@@ -320,9 +320,9 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(
         {/* Footer */}
         <div style={{ textAlign: 'center', fontSize: '8px', marginTop: '8px', paddingTop: '4px', borderTop: '1px solid #000' }}>
           <div style={{ letterSpacing: '2px', marginBottom: '2px' }}>─────────────────────</div>
-          <div style={{ fontWeight: 'bold', marginBottom: '1px' }}>YoussefAhmed</div>
+          <div style={{ fontWeight: 'bold', marginBottom: '1px' }}>YousefTech</div>
           <div style={{ marginBottom: '2px' }}>{toArabicNumerals('01000139417')}</div>
-          <div style={{ marginBottom: '2px' }}>Powered by YA Tech</div>
+          <div style={{ marginBottom: '2px' }}>تطوير YousefTech</div>
           <div style={{ letterSpacing: '2px' }}>─────────────────────</div>
         </div>
       </div>

@@ -491,9 +491,8 @@ export const Settings: React.FC = () => {
       {/* About */}
       <GlassCard>
         <div className="text-center space-y-2">
-          <p className="text-gray-400">💈 Barber Shop Management System</p>
-          <p className="text-xs text-gray-500">v1.0.0 • Made with ❤️ for Egyptian barbershops</p>
-          <p className="text-xs text-gray-500">🇪🇬 Powered by Supabase + React + Framer Motion</p>
+          <p className="text-gray-400">© YousefTech 2026</p>
+          <p className="text-xs text-gray-500">نظام تطوير YousefTech • 01000139417</p>
         </div>
       </GlassCard>
     </div>
