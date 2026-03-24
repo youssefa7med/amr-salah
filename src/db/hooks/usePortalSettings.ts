@@ -23,9 +23,12 @@ export const usePortalSettings = () => {
     try {
       setLoading(true)
       if (!shopId) {
+        console.log('⏭️ No shopId available, skipping portal settings fetch')
         setPortalSettings(null)
         return
       }
+
+      console.log('🔍 Fetching portal settings for shop:', shopId)
 
       const { data, error } = await supabase
         .from('portal_settings')
@@ -34,19 +37,57 @@ export const usePortalSettings = () => {
         .single()
 
       if (error) {
+        console.error('❌ Fetch error:', error.code, error.message)
         if (error.code === 'PGRST116') {
           // No row found - create default portal settings
+          console.log('📝 No portal settings found, creating defaults...')
           await createDefaultPortalSettings()
           return
         }
         throw error
       }
 
+      console.log('✅ Portal settings fetched successfully:', data)
       setPortalSettings(data as PortalSettings)
       setError(null)
     } catch (err: any) {
-      console.error('Error fetching portal settings:', err)
+      console.error('💥 Error fetching portal settings:', err)
+      console.error('Error code:', err.code)
+      console.error('Error message:', err.message)
+      
+      // Handle 406 error (Not Acceptable)
+      if (err.status === 406 || err.code === '406') {
+        console.warn('⚠️ 406 error - trying alternative query method')
+        // Try alternative approach with limit
+        try {
+          const { data: altData, error: altErr } = await supabase
+            .from('portal_settings')
+            .select('*')
+            .eq('shop_id', shopId)
+            .limit(1)
+          
+          if (altErr) throw altErr
+          if (altData && altData.length > 0) {
+            console.log('✅ Alternative query successful:', altData[0])
+            setPortalSettings(altData[0] as PortalSettings)
+            setError(null)
+            return
+          }
+        } catch (altErr) {
+          console.error('❌ Alternative query also failed:', altErr)
+        }
+      }
+      
       setError(err.message)
+      
+      // If fetch fails, don't prevent user from accessing settings form
+      // Try to create default settings for the user to edit
+      console.log('📝 Fetch failed, attempting to create default settings...')
+      try {
+        await createDefaultPortalSettings()
+      } catch (createErr: any) {
+        console.error('⚠️ Could not create default settings either:', createErr)
+      }
     } finally {
       setLoading(false)
     }
