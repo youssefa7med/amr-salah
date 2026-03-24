@@ -221,23 +221,54 @@ export function usePortalAuthSecure(slug?: string) {
     [customer]
   )
 
-  // Reset password via phone verification (simplified for now)
+  // Reset password via phone verification
   const resetPasswordViaPhone = useCallback(
-    async (phone: string) => {
+    async (phone: string, email: string, newPassword: string) => {
       try {
         setLoading(true)
         setError(null)
 
-        // In production, you'd verify the phone via SMS first
-        // For now, we'll use the updateUserPassword admin method
-        // This would require a backend function in production
+        if (!phone || !email || !newPassword) {
+          setError('يرجى ملء جميع الحقول')
+          return false
+        }
 
-        console.log('📱 Reset password flow initiated for:', phone)
-        setError('يرجى التواصل مع الدعم لإعادة تعيين كلمة المرور')
-        return false
+        // Check if email and phone match in portal_users for current user
+        const { data, error: checkErr } = await supabase
+          .from('portal_users')
+          .select('id, email, phone')
+          .eq('email', email)
+          .eq('phone', phone)
+          .single()
+
+        if (checkErr && checkErr.code !== 'PGRST116') {
+          throw checkErr
+        }
+
+        if (!data) {
+          console.error('❌ Email and phone do not match')
+          setError('البريد الإلكتروني ورقم الهاتف غير متطابقين')
+          return false
+        }
+
+        // Email and phone match - update the password
+        console.log('✅ Email and phone verified, updating password')
+
+        const { error: updateErr } = await supabase.auth.updateUser({
+          password: newPassword
+        })
+
+        if (updateErr) {
+          throw updateErr
+        }
+
+        console.log('✅ Password updated successfully')
+        setError(null)
+        return true
       } catch (err: any) {
-        console.error('❌ Reset error:', err)
-        setError('خطأ في عملية إعادة التعيين')
+        console.error('❌ Reset password error:', err)
+        const message = err.message || 'خطأ في إعادة تعيين كلمة المرور'
+        setError(message)
         return false
       } finally {
         setLoading(false)

@@ -29,6 +29,9 @@ export function PortalLoginSecure() {
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotPhone, setForgotPhone] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -134,15 +137,28 @@ export function PortalLoginSecure() {
     setLoading(true)
 
     try {
-      if (!phone) {
-        toast.error('يرجى إدخال رقم الهاتف')
+      if (!forgotEmail || !forgotPhone || !newPassword) {
+        toast.error('يرجى ملء جميع الحقول')
         return
       }
 
-      const result = await resetPasswordViaPhone(phone)
+      if (newPassword.length < 6) {
+        toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+        return
+      }
+
+      // Verify email and phone match, then update password
+      const result = await resetPasswordViaPhone(forgotPhone, forgotEmail, newPassword)
+      
       if (result) {
-        toast.success('تم إعادة تعيين كلمة المرور ✓')
+        toast.success('تم تحديث كلمة المرور بنجاح ✓')
         setMode('login')
+        setForgotEmail('')
+        setForgotPhone('')
+        setNewPassword('')
+      } else {
+        // Error message is already set by resetPasswordViaPhone
+        toast.error(authError || 'فشل التحقق من البيانات')
       }
     } catch (err: any) {
       console.error('Reset error:', err)
@@ -433,8 +449,24 @@ export function PortalLoginSecure() {
           {mode === 'forgot-password' && (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <p className="text-slate-300 text-sm text-center mb-4">
-                أدخل رقم هاتفك وسنرسل لك تعليمات إعادة التعيين
+                أدخل بريدك الإلكتروني ورقم هاتفك وكلمة مرور جديدة
               </p>
+
+              {/* Email Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
+                  البريد الإلكتروني
+                </label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
+                  placeholder="you@email.com"
+                  required
+                  disabled={loading}
+                />
+              </div>
 
               {/* Phone Input */}
               <div className="space-y-2">
@@ -443,8 +475,8 @@ export function PortalLoginSecure() {
                 </label>
                 <input
                   type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={forgotPhone}
+                  onChange={(e) => setForgotPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
                   placeholder="01012345678"
                   dir="ltr"
@@ -453,10 +485,37 @@ export function PortalLoginSecure() {
                 />
               </div>
 
-              {/* Notice */}
+              {/* New Password Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-200">
+                  كلمة المرور الجديدة
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/50 hover:border-cyan-500/30 focus:border-cyan-500/60 rounded-lg text-white placeholder-slate-500 focus:outline-none transition duration-200 focus:ring-1 focus:ring-cyan-500/20"
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-4 top-3.5 text-slate-400 hover:text-cyan-400 transition duration-200"
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400">الحد الأدنى 6 أحرف</p>
+              </div>
+
+              {/* Verification Info */}
               <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
                 <p className="text-blue-300 text-xs">
-                  📱 يرجى التواصل مع الدعم الفني لإعادة تعيين كلمة المرور عبر SMS
+                  🔐 سيتم التحقق من تطابق البريد الإلكتروني ورقم الهاتف قبل حفظ كلمة المرور الجديدة
                 </p>
               </div>
 
@@ -469,10 +528,10 @@ export function PortalLoginSecure() {
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    جاري الإرسال...
+                    جاري التحقق...
                   </span>
                 ) : (
-                  'إرسال تعليمات'
+                  'تحديث كلمة المرور'
                 )}
               </button>
 
@@ -481,8 +540,9 @@ export function PortalLoginSecure() {
                 type="button"
                 onClick={() => {
                   setMode('login')
-                  setPhone('')
-                  setPassword('')
+                  setForgotEmail('')
+                  setForgotPhone('')
+                  setNewPassword('')
                 }}
                 disabled={loading}
                 className="w-full py-3 rounded-lg font-semibold text-cyan-400 border border-cyan-500/30 hover:border-cyan-500/60 hover:bg-cyan-500/10 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
