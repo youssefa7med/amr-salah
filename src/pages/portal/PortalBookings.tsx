@@ -176,14 +176,16 @@ export function PortalBookings() {
   }, [settings?.shop_name, lang])
 
   // Calculate available time slots when date or service changes
+  // Debounced to prevent excessive API calls
   useEffect(() => {
-    if (form.date && form.serviceId) {
-      const loadSlots = async () => {
-        const slots = await getAvailableSlots(form.date, form.barberId || undefined)
-        setAvailableSlots(slots)
-      }
-      loadSlots()
-    }
+    if (!form.date || !form.serviceId) return
+
+    const timer = setTimeout(async () => {
+      const slots = await getAvailableSlots(form.date, form.barberId || undefined)
+      setAvailableSlots(slots)
+    }, 300) // Wait 300ms after user stops changing values
+
+    return () => clearTimeout(timer) // Cleanup previous timer
   }, [form.date, form.serviceId, form.barberId, getAvailableSlots])
 
   // Get min & max dates for input
