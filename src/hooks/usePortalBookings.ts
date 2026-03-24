@@ -173,11 +173,16 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
 
         // Get booked times for this barber on this date
         if (barberId) {
+          // Cast bookingtime to text for date comparison (timestamp can't use ILIKE)
+          const dateStart = `${bookingDate}T00:00:00`
+          const dateEnd = `${bookingDate}T23:59:59`
+          
           const { data: bookedSlots, error } = await supabase
             .from('bookings')
             .select('bookingtime')
             .eq('shop_id', shopId)
-            .ilike('bookingtime', `${bookingDate}%`)
+            .gte('bookingtime', dateStart)
+            .lt('bookingtime', dateEnd)
             .eq('barberid', barberId)
             .in('status', ['confirmed', 'pending'])
 
@@ -232,56 +237,39 @@ export function usePortalBookings(shopId?: string, customerId?: string) {
         }
 
         // Get actual client record ID from clients table (not auth UID)
-        let actualClientId = clientId
+        let actualClientId: string | undefined
         let clientPhone = ''
         let clientName = ''
 
-        if (!actualClientId) {
-          // Fetch client record by auth user's phone
-          const { data: { user } } = await supabase.auth.getUser()
-          if (!user?.email) {
-            setError('لم يتم العثور على بيانات المستخدم')
-            return null
-          }
-
-          // Extract phone from email (format: phone@shopId.portal)
-          const emailParts = user.email.split('@')
-          clientPhone = emailParts[0]
-
-          // Get client record by phone + shop_id
-          const { data: clientData, error: clientErr } = await supabase
-            .from('clients')
-            .select('id, phone, name')
-            .eq('shop_id', shopId)
-            .eq('phone', clientPhone)
-            .single()
-
-          if (clientErr || !clientData) {
-            console.error('❌ Client record not found:', { clientErr, clientPhone, shopId })
-            setError('بيانات العميل غير موجودة. حاول تسجيل الخروج وإعادة تسجيل الدخول')
-            return null
-          }
-
-          actualClientId = clientData.id
-          clientPhone = clientData.phone
-          clientName = clientData.name
-        } else {
-          // Fetch client details by ID + shop_id (required for RLS policy)
-          const { data: clientData, error: clientErr } = await supabase
-            .from('clients')
-            .select('phone, name')
-            .eq('id', actualClientId)
-            .eq('shop_id', shopId)
-            .single()
-
-          if (clientErr || !clientData) {
-            setError('بيانات العميل غير موجودة')
-            return null
-          }
-
-          clientPhone = clientData.phone
-          clientName = clientData.name
+        // Always lookup client by phone from auth user
+        // (customerId is auth user ID, not client ID - don't use it for lookups)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.email) {
+          setError('لم يتم العثور على بيانات المستخدم')
+          return null
         }
+
+        // Extract phone from email (format: phone@shopId.portal)
+        const emailParts = user.email.split('@')
+        clientPhone = emailParts[0]
+
+        // Get client record by phone + shop_id
+        const { data: clientData, error: clientErr } = await supabase
+          .from('clients')
+          .select('id, phone, name')
+          .eq('shop_id', shopId)
+          .eq('phone', clientPhone)
+          .single()
+
+        if (clientErr || !clientData) {
+          console.error('❌ Client record not found:', { clientErr, clientPhone, shopId })
+          setError('بيانات العميل غير موجودة. حاول تسجيل الخروج وإعادة تسجيل الدخول')
+          return null
+        }
+
+        actualClientId = clientData.id
+        clientPhone = clientData.phone
+        clientName = clientData.name
 
         // Create booking in bookings table (for staff)
         const bookingData = {
