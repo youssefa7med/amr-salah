@@ -76,13 +76,14 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string, sl
 
       const { data: nextBookings, error: bookingErr } = await supabase
         .from('bookings')
-        .select('id, bookingtime, service_name, status')
+        .select('id, booking_date, booking_time, service_name, status')
         .eq('shop_id', shopId)
         .eq('clientphone', customerPhone)
         .in('status', ['pending', 'confirmed'])
-        .gte('bookingtime', dateStart)
-        .lte('bookingtime', dateEnd)
-        .order('bookingtime', { ascending: true })
+        .gte('booking_date', dateStart.split('T')[0])
+        .lte('booking_date', dateEnd.split('T')[0])
+        .order('booking_date', { ascending: true })
+        .order('booking_time', { ascending: true })
         .limit(1)
 
       if (bookingErr) throw bookingErr
@@ -94,8 +95,8 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string, sl
         .eq('shop_id', shopId)
         .eq('clientphone', customerPhone)
         .in('status', ['pending', 'confirmed'])
-        .gte('bookingtime', dateStart)
-        .lte('bookingtime', dateEnd)
+        .gte('booking_date', dateStart.split('T')[0])
+        .lte('booking_date', dateEnd.split('T')[0])
 
       if (countErr) throw countErr
 
@@ -107,8 +108,8 @@ export function usePortalDashboardStats(shopId?: string, customerId?: string, sl
       const nextBooking = nextBookings && nextBookings.length > 0 
         ? {
             id: nextBookings[0].id,
-            bookingDate: new Date(nextBookings[0].bookingtime).toISOString().split('T')[0],
-            bookingTime: new Date(nextBookings[0].bookingtime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+            bookingDate: nextBookings[0].booking_date,
+            bookingTime: nextBookings[0].booking_time,
             serviceName
           }
         : undefined
