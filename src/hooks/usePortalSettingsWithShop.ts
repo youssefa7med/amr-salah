@@ -26,7 +26,17 @@ export function usePortalSettingsWithShop(slug?: string) {
       setLoading(true)
       setError(null)
 
-      console.log('🔍 Fetching portal settings for slug:', portalSlug)
+      console.log('� fetchSettings called with slug:', portalSlug)
+      console.log('🟢 Type of slug:', typeof portalSlug)
+      console.log('🟢 Slug length:', portalSlug?.length)
+
+      if (!portalSlug || portalSlug === ':slug') {
+        console.error('❌ Invalid slug:', portalSlug)
+        setError('معرّف البوابة غير صحيح')
+        return null
+      }
+
+      console.log('�🔍 Fetching portal settings for slug:', portalSlug)
 
       // First check if portal settings exist with this slug
       const { data: portalDataArray, error: portalErr } = await supabase

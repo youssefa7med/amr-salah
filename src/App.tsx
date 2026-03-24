@@ -322,7 +322,7 @@ function App() {
           />
 
           {/* Portal Routes - Public, Slug-based */}
-          <Route path="/shop/:slug" element={<Navigate to={`/shop/:slug/login`} replace />} />
+          <Route path="/shop/:slug" element={<PortalLogin />} />
           <Route path="/shop/:slug/login" element={<PortalLogin />} />
           <Route path="/shop/:slug/register" element={<PortalRegister />} />
           <Route path="/shop/:slug/dashboard" element={<PortalDashboard />} />

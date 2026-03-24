@@ -9,6 +9,14 @@ import { Eye, EyeOff } from 'lucide-react'
 export function PortalLogin() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🔵 PortalLogin loaded')
+    console.log('📍 URL slug param:', slug)
+    console.log('📍 useParams result:', { slug })
+  }, [slug])
+  
   const { customer, loading: authLoading, signIn } = usePortalAuth(slug || '')
   const { settings, loading: settingsLoading } = usePortalSettingsWithShop(slug)
 
