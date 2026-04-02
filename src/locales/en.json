@@ -1,6 +1,7 @@
 {
   "common": {
-    "appName": "Amr Salah Barber Shop",
+    "appName": "Amr Salah",
+    "appSubtitle": "Specialized Barber Shop",
     "barbershop": "Barbershop",
     "save": "Save",
     "cancel": "Cancel",

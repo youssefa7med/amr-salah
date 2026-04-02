@@ -41,7 +41,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </button>
           <div className="flex items-center gap-2">
             <span className="text-2xl">💈</span>
-            <h1 className="text-lg sm:text-xl font-bold text-white hidden sm:block">{t('common.appName')}</h1>
+            <div className="hidden sm:block">
+              <h1 className="text-lg sm:text-xl font-bold text-white">{t('common.appName')}</h1>
+              <p className="text-xs text-gold-300/70">{t('common.appSubtitle')}</p>
+            </div>
           </div>
         </div>
 
