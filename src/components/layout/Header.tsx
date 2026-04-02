@@ -39,10 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">💈</span>
-            <h1 className="text-lg sm:text-xl font-bold text-white hidden sm:block">{t('common.appName')}</h1>
-          </div>
+          <span className="text-2xl">💈</span>
         </div>
 
         {/* Right side - Controls */}

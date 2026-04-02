@@ -1,6 +1,7 @@
 {
   "common": {
-    "appName": "محل عمرو صلاح للحلاقة",
+    "appName": "امر سلاح",
+    "appSubtitle": "متجر حلاقة متخصص",
     "barbershop": "المحل",
     "save": "حفظ",
     "cancel": "إلغاء",

@@ -113,10 +113,18 @@ export default function Login() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="text-3xl font-bold bg-gradient-to-r from-white via-white to-gold-300 bg-clip-text text-transparent mb-3"
+              className="text-3xl font-bold bg-gradient-to-r from-white via-white to-gold-300 bg-clip-text text-transparent mb-2"
             >
-              {t('common.appName') || 'نظام إدارة محل حلاقة'}
+              {t('common.appName') || 'Amr Salah'}
             </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="text-gold-300 text-lg font-light tracking-wide mb-3"
+            >
+              {t('common.appSubtitle') || 'Barber Shop'}
+            </motion.p>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
