@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase, Expense } from '../supabase'
 import { getEgyptDateString } from '../../utils/egyptTime'
 import toast from 'react-hot-toast'
 
 export const useExpenses = () => {
-  const { shopId } = useAuth()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,16 +11,11 @@ export const useExpenses = () => {
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true)
-      if (!shopId) {
-        setExpenses([])
-        return
-      }
 
       console.log('Fetching expenses from database...')
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .eq('shop_id', shopId)
         .order('date', { ascending: false })
 
       if (error) throw error
@@ -36,7 +29,7 @@ export const useExpenses = () => {
     } finally {
       setLoading(false)
     }
-  }, [shopId])
+  }, [])
 
   useEffect(() => {
     fetchExpenses()
@@ -44,13 +37,10 @@ export const useExpenses = () => {
 
   const addExpense = async (expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      if (!shopId) throw new Error('Shop ID is required')
-
       const { data, error } = await supabase
         .from('expenses')
         .insert({
           ...expense,
-          shop_id: shopId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })

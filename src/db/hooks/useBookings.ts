@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase, Booking } from '../supabase'
 import { getEgyptDateString } from '../../utils/egyptTime'
 import toast from 'react-hot-toast'
 import { appEmitter } from '../../utils/eventEmitter'
 
 export const useBookings = () => {
-  const { shopId } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -14,16 +12,11 @@ export const useBookings = () => {
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
-      if (!shopId) {
-        setBookings([])
-        return
-      }
 
       console.log('Fetching bookings from database...')
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
-        .eq('shop_id', shopId)
         .order('bookingtime', { ascending: true })
 
       if (error) throw error
@@ -56,7 +49,7 @@ export const useBookings = () => {
     } finally {
       setLoading(false)
     }
-  }, [shopId])
+  }, [])
 
   useEffect(() => {
     fetchBookings()

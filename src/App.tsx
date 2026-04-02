@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useTheme } from './hooks/useTheme'
 import { useLanguage } from './hooks/useLanguage'
 import { useAuth } from './hooks/useAuth'
-import { checkSubscriptionStatus } from './utils/subscriptionChecker'
 
 // Pages
 import Login from './pages/Login'
@@ -20,11 +19,6 @@ import { DailyLogs } from './pages/DailyLogs'
 import { Barbers } from './pages/Barbers'
 import { Bookings } from './pages/Bookings'
 import { QueueDisplay } from './pages/QueueDisplay'
-import { AdminDashboard } from './pages/AdminDashboard'
-import { AdminShops } from './pages/AdminShops'
-import { AdminPlans } from './pages/AdminPlans'
-import { AdminBilling } from './pages/AdminBilling'
-import { ShopBilling } from './pages/ShopBilling'
 
 // Portal Pages
 import { PortalLoginSecure } from './pages/portal/PortalLoginSecure'
@@ -35,95 +29,25 @@ import { PortalHistory } from './pages/portal/PortalHistory'
 import { PortalProfile } from './pages/portal/PortalProfile'
 
 /**
- * AdminRoute Component
- * 
- * Wraps admin-only routes
- * - Redirects to /dashboard if user is shop owner
- * - Redirects to /login if not authenticated
+ * ProtectedRoute Component
+ * Simple auth guard - redirects to /login if not authenticated
  */
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { loading, role } = useAuth()
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { loading, user } = useAuth()
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 rounded-full border-4 border-gold-400/20 border-t-gold-400 animate-spin mx-auto mb-4"></div>
-          <p className="text-white/60">Loading...</p>
+          <p className="text-white/60">تحميل...</p>
         </div>
       </div>
     )
   }
 
-  if (!role) {
+  if (!user) {
     return <Navigate to="/login" replace />
-  }
-
-  if (role !== 'admin') {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return <>{children}</>
-}
-
-/**
- * ShopRoute Component
- * 
- * Wraps shop-owner routes with subscription enforcement:
- * - ACTIVE: full access
- * - INACTIVE: view-only access
- * - SUSPENDED/EXPIRED: blocked, redirect to /billing
- */
-function ShopRoute({ children }: { children: React.ReactNode }) {
-  const { loading, role, shopId } = useAuth()
-  const navigate = useNavigate()
-  const [checkLoading, setCheckLoading] = useState(true)
-  const location = useLocation()
-
-  // Always allow /billing route regardless of subscription status
-  const isBillingRoute = location.pathname === '/billing' || location.pathname === '/shop-billing'
-
-  useEffect(() => {
-    const checkSub = async () => {
-      if (role !== 'shop' || !shopId || isBillingRoute) {
-        setCheckLoading(false)
-        return
-      }
-
-      try {
-        const status = await checkSubscriptionStatus(shopId)
-
-        // Redirect suspended/expired users to billing
-        if (status.status === 'suspended' || status.status === 'expired') {
-          navigate('/billing', { replace: true })
-        }
-      } catch (error) {
-        console.error('Error checking subscription:', error)
-      } finally {
-        setCheckLoading(false)
-      }
-    }
-
-    checkSub()
-  }, [shopId, role, isBillingRoute, navigate])
-
-  if (loading || checkLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-gold-400/20 border-t-gold-400 animate-spin mx-auto mb-4"></div>
-          <p className="text-white/60">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!role) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (role !== 'shop') {
-    return <Navigate to="/admin" replace />
   }
 
   return <>{children}</>
@@ -148,6 +72,148 @@ function App() {
     <div className={theme === 'dark' ? 'dark' : 'light'}>
       <Router>
         <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Shop Routes - Protected */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pos"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <POS />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/clients"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Clients />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/barbers"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Barbers />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Bookings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/queue"
+            element={
+              <ProtectedRoute>
+                <QueueDisplay />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Services />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Expenses />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Analytics />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/daily-logs"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <DailyLogs />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Portal Routes - Customer Portal */}
+          <Route path="/login" element={<PortalLoginSecure />} />
+          <Route path="/register" element={<PortalRegister />} />
+          <Route path="/portal/dashboard" element={<PortalDashboard />} />
+          <Route path="/portal/bookings" element={<PortalBookings />} />
+          <Route path="/portal/history" element={<PortalHistory />} />
+          <Route path="/portal/profile" element={<PortalProfile />} />
+
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Router>
+
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            border: '1px solid #334155',
+          },
+        }}
+      />
+    </div>
+  )
+}
+
+export default App
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
 

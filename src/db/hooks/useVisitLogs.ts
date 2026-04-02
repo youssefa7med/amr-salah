@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '../supabase'
 import toast from 'react-hot-toast'
 
@@ -17,7 +16,6 @@ export interface VisitLog {
 }
 
 export const useVisitLogs = () => {
-  const { shopId } = useAuth()
   const [visitLogs, setVisitLogs] = useState<VisitLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,15 +23,10 @@ export const useVisitLogs = () => {
   const fetchVisitLogs = async () => {
     try {
       setLoading(true)
-      if (!shopId) {
-        setVisitLogs([])
-        return
-      }
 
       const { data, error } = await supabase
         .from('visit_logs')
         .select('*')
-        .eq('shop_id', shopId)
         .order('createdAt', { ascending: false })
 
       if (error) throw error
@@ -49,19 +42,14 @@ export const useVisitLogs = () => {
 
   useEffect(() => {
     fetchVisitLogs()
-  }, [shopId])
+  }, [])
 
   const addVisitLog = async (log: Omit<VisitLog, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      if (!shopId) {
-        throw new Error('Shop ID is required')
-      }
-
       const { data, error } = await supabase
         .from('visit_logs')
         .insert({
           ...log,
-          shop_id: shopId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -78,14 +66,9 @@ export const useVisitLogs = () => {
 
   const getClientVisitLogs = async (clientId: string) => {
     try {
-      if (!shopId) {
-        return []
-      }
-      
       const { data, error } = await supabase
         .from('visit_logs')
         .select('*')
-        .eq('shop_id', shopId)
         .eq('clientId', clientId)
         .order('visitDate', { ascending: false })
 

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/hooks/useAuth'
 import { supabase, Transaction } from '../supabase'
 import { getEgyptDateString } from '../../utils/egyptTime'
 import toast from 'react-hot-toast'
 
+/**
+ * Single Shop Transactions Hook - No shop_id filtering
+ * All transactions for Amr Salah Barber Shop
+ */
 export const useTransactions = () => {
-  const { shopId } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,16 +15,11 @@ export const useTransactions = () => {
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true)
-      if (!shopId) {
-        setTransactions([])
-        return
-      }
 
       console.log('Fetching transactions from database...')
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('shop_id', shopId)
         .order('createdAt', { ascending: false })
 
       if (error) throw error
@@ -36,7 +33,7 @@ export const useTransactions = () => {
     } finally {
       setLoading(false)
     }
-  }, [shopId])
+  }, [])
 
   useEffect(() => {
     fetchTransactions()
@@ -44,13 +41,10 @@ export const useTransactions = () => {
 
   const addTransaction = async (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      if (!shopId) throw new Error('Shop ID is required')
-
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           ...transaction,
-          shop_id: shopId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -58,20 +52,15 @@ export const useTransactions = () => {
 
       if (error) throw error
 
-      // ✅ Database trigger (log_transaction_usage) automatically logs to usage_logs
-      // No need to insert here - trigger handles it automatically
-
       // 🔄 Auto-complete today's pending/confirmed bookings for this client
       try {
         const clientPhone = transaction.clientPhone
         if (clientPhone) {
-          const today = new Date().toISOString().split('T')[0] // today's date
+          const today = new Date().toISOString().split('T')[0]
           
-          // Find client's active bookings for today
           const { data: activeBookings, error: bookingErr } = await supabase
             .from('bookings')
             .select('id')
-            .eq('shop_id', shopId)
             .eq('clientPhone', clientPhone)
             .in('status', ['pending', 'confirmed'])
             .gte('bookingDate', today + 'T00:00:00')
@@ -79,7 +68,6 @@ export const useTransactions = () => {
             .order('bookingTime', { ascending: true })
 
           if (!bookingErr && activeBookings && activeBookings.length > 0) {
-            // Update each booking to completed
             for (const booking of activeBookings) {
               const { error: updateErr } = await supabase
                 .from('bookings')
@@ -98,7 +86,6 @@ export const useTransactions = () => {
         }
       } catch (bookingErr) {
         console.warn('⚠️ Warning: Error auto-completing bookings:', bookingErr)
-        // Don't throw - transaction should succeed even if booking completion fails
       }
 
       await fetchTransactions()
@@ -198,6 +185,10 @@ export const useTransactions = () => {
     deleteTransaction,
     getTransactionsByDate,
     getTransactionsByClientId,
+    getTodayRevenue,
+    getRevenueForDateRange,
+  }
+}
     getTodayRevenue,
     getRevenueForDateRange,
   }

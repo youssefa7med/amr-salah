@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase, Settings } from '../supabase'
 import toast from 'react-hot-toast'
-import { useAuth } from '@/hooks/useAuth'
 
 export const useSettings = () => {
-  const { shopId } = useAuth()
   const [settings, setSettings] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -12,18 +10,10 @@ export const useSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true)
-      
-      // Only fetch if we have a shop ID
-      if (!shopId) {
-        setSettings({})
-        setError(null)
-        return
-      }
 
       const { data, error } = await supabase
         .from('settings')
         .select('*')
-        .eq('shop_id', shopId)
 
       if (error) throw error
       
@@ -44,20 +34,15 @@ export const useSettings = () => {
 
   useEffect(() => {
     fetchSettings()
-  }, [shopId])
+  }, [])
 
   const updateSetting = async (key: string, value: any) => {
     try {
-      if (!shopId) {
-        throw new Error('No shop ID available')
-      }
-
-      // First, try to delete existing record with this key and shop_id
+      // First, try to delete existing record with this key
       await supabase
         .from('settings')
         .delete()
         .eq('key', key)
-        .eq('shop_id', shopId)
 
       // Then insert the new record
       const { error } = await supabase
@@ -65,7 +50,6 @@ export const useSettings = () => {
         .insert({
           key,
           value,
-          shop_id: shopId,
           updatedAt: new Date().toISOString(),
         })
 
