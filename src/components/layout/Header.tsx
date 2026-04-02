@@ -39,7 +39,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="text-2xl">💈</span>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">💈</span>
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-bold text-white">عمرو صلاح</h1>
+              <p className="text-xs text-gold-300/70">متجر حلاقة</p>
+            </div>
+          </div>
         </div>
 
         {/* Right side - Controls */}
