@@ -10,6 +10,7 @@ export const useServices = () => {
   const fetchServices = async () => {
     try {
       setLoading(true)
+      console.log('=== DEBUG: Fetching Services ===')
 
       const { data, error } = await supabase
         .from('services')
@@ -17,10 +18,20 @@ export const useServices = () => {
         .eq('active', true)
         .order('category', { ascending: true })
 
+      console.log('Fetch error:', error)
+      console.log('Fetch data:', data)
+      
+      if (data && data.length > 0) {
+        console.log('📊 First service structure:')
+        console.log('Column names:', Object.keys(data[0]))
+        console.log('Full object:', JSON.stringify(data[0], null, 2))
+      }
+
       if (error) throw error
       setServices(data || [])
       setError(null)
     } catch (err: any) {
+      console.error('❌ FETCH ERROR:', err)
       setError(err.message)
       toast.error(err.message)
     } finally {
