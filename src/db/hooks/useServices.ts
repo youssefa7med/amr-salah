@@ -34,19 +34,39 @@ export const useServices = () => {
 
   const addService = async (service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      console.log('=== DEBUG: Adding Service ===')
+      console.log('Input service:', service)
+      
+      const insertData = {
+        namear: service.nameAr,
+        nameen: service.nameEn,
+        price: service.price,
+        duration: service.duration,
+        category: service.category,
+        active: service.active,
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
+      }
+      console.log('Data being inserted:', insertData)
+      
       const { data, error } = await supabase
         .from('services')
-        .insert({
-          ...service,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
+        .insert(insertData)
         .select()
 
-      if (error) throw error
+      console.log('Supabase response - Error:', error)
+      console.log('Supabase response - Data:', data)
+
+      if (error) {
+        console.error('❌ INSERT ERROR:', error)
+        throw error
+      }
+      
+      console.log('✅ Service added successfully:', data?.[0])
       await fetchServices()
       return data?.[0]
     } catch (err: any) {
+      console.error('❌ FULL ERROR:', err)
       toast.error(err.message)
       throw err
     }
@@ -54,12 +74,20 @@ export const useServices = () => {
 
   const updateService = async (id: string, updates: Partial<Service>) => {
     try {
+      const updateData: any = {}
+      
+      if (updates.nameAr) updateData.namear = updates.nameAr
+      if (updates.nameEn) updateData.nameen = updates.nameEn
+      if (updates.price !== undefined) updateData.price = updates.price
+      if (updates.duration !== undefined) updateData.duration = updates.duration
+      if (updates.category) updateData.category = updates.category
+      if (updates.active !== undefined) updateData.active = updates.active
+      
+      updateData.updatedat = new Date().toISOString()
+
       const { error } = await supabase
         .from('services')
-        .update({
-          ...updates,
-          updatedAt: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
 
       if (error) throw error
