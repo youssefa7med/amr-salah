@@ -25,10 +25,28 @@ export const useServices = () => {
         console.log('📊 First service structure:')
         console.log('Column names:', Object.keys(data[0]))
         console.log('Full object:', JSON.stringify(data[0], null, 2))
+        
+        // Transform lowercase columns to camelCase
+        const transformedData = data.map((service: any) => ({
+          id: service.id,
+          nameAr: service.namear,
+          nameEn: service.nameen,
+          price: service.price,
+          duration: service.duration,
+          category: service.category,
+          active: service.active,
+          createdAt: service.createdat,
+          updatedAt: service.updatedat,
+          shop_id: service.shop_id,
+        }))
+        
+        console.log('✅ Transformed data:', transformedData[0])
+        setServices(transformedData)
+      } else {
+        setServices([])
       }
 
       if (error) throw error
-      setServices(data || [])
       setError(null)
     } catch (err: any) {
       console.error('❌ FETCH ERROR:', err)
