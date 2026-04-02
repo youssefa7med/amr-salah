@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../components/ui/GlassCard'
 import { useServices } from '../db/hooks/useServices'
 import { motion } from 'framer-motion'
@@ -7,7 +6,6 @@ import { Trash2, Plus, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export const Services: React.FC = () => {
-  const { t } = useTranslation()
   const { services, addService, deleteService, updateService } = useServices()
   
   const [formData, setFormData] = useState({
@@ -250,7 +248,7 @@ export const Services: React.FC = () => {
                         تعديل
                       </button>
                       <button
-                        onClick={() => handleDelete(service.id)}
+                        onClick={() => handleDelete(service.id!)}
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 text-red-400 border border-red-400/20 rounded hover:bg-red-500/30 transition text-sm"
                       >
                         <Trash2 size={16} />
