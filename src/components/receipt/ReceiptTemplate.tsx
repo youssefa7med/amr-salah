@@ -176,10 +176,22 @@ export const ReceiptTemplate = React.forwardRef<HTMLDivElement, ReceiptProps>(
           }
         `}</style>
 
-        {/* Header with Separator */}
+        {/* Header with Logo and Separator */}
         <div style={{ textAlign: 'center', marginBottom: '8px', paddingBottom: '8px', borderBottom: '2px solid #000' }}>
+          <div style={{ marginBottom: '6px' }}>
+            <img
+              src="/logo.png"
+              alt="Amr Salah"
+              style={{
+                width: '50px',
+                height: 'auto',
+                margin: '0 auto',
+                display: 'block',
+              }}
+            />
+          </div>
           <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px' }}>
-            ✂️ {shopName} ✂️
+            {shopName}
           </div>
           {shopPhone && (
             <div style={{ fontSize: '11px', marginBottom: '2px' }}>📞 {shopPhone}</div>

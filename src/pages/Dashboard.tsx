@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { GlassCard } from '../components/ui/GlassCard'
 import { AnimatedCounter } from '../components/ui/AnimatedCounter'
 import { Badge } from '../components/ui/Badge'
+import Logo from '../components/Logo'
 import { useTransactions } from '../db/hooks/useTransactions'
 import { useExpenses } from '../db/hooks/useExpenses'
 import { appEmitter } from '../utils/eventEmitter'
@@ -166,6 +167,15 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 px-3 md:px-0">
+      {/* Header with Logo */}
+      <div className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 mb-4">
+        <Logo size="md" />
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">امر سلاح</h1>
+          <p className="text-gold-400 text-sm">متجر حلاقة متخصص</p>
+        </div>
+      </div>
+
       {/* Page Title with Refresh Button */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
