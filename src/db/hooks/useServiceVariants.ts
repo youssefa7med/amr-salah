@@ -25,8 +25,8 @@ export const useServiceVariants = () => {
       const { data, error } = await supabase
         .from('service_variants')
         .select('*')
-        .eq('active', true)
-        .order('created_at', { ascending: true })
+        .eq('isActive', true)
+        .order('createdAt', { ascending: true })
 
       if (error) throw error
       setVariants(data || [])
@@ -49,7 +49,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .insert({
           ...variant,
-          created_at: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()
@@ -102,7 +102,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .select('*')
         .eq('serviceId', serviceId)
-        .eq('active', true)
+        .eq('isActive', true)
         .order('price', { ascending: true })
 
       if (error) throw error

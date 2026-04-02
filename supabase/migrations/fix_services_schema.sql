@@ -10,6 +10,9 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'services' AND table_schema = 'public') THEN
     ALTER TABLE public.services DISABLE ROW LEVEL SECURITY;
   END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'service_variants' AND table_schema = 'public') THEN
+    ALTER TABLE public.service_variants DISABLE ROW LEVEL SECURITY;
+  END IF;
 END $$;
 
 -- Drop service_variants table first (has foreign key to services)
@@ -34,7 +37,7 @@ CREATE TABLE public.services (
 -- Create service_variants table with correct schema
 CREATE TABLE public.service_variants (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  service_id UUID NOT NULL REFERENCES public.services(id) ON DELETE CASCADE,
+  serviceId UUID NOT NULL REFERENCES public.services(id) ON DELETE CASCADE,
   nameAr VARCHAR(255) NOT NULL,
   nameEn VARCHAR(255) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
@@ -46,13 +49,13 @@ CREATE TABLE public.service_variants (
 -- Create indexes
 CREATE INDEX idx_services_shop_id ON public.services(shop_id);
 CREATE INDEX idx_services_active ON public.services(active);
-CREATE INDEX idx_service_variants_service_id ON public.service_variants(service_id);
+CREATE INDEX idx_service_variants_serviceId ON public.service_variants(serviceId);
 
--- Add RLS policies (no shop_id check for now - can add later)
+-- Add RLS policies (permissive - can restrict later)
 ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_variants ENABLE ROW LEVEL SECURITY;
 
--- Allow all operations (permissive - can restrict later)
+-- Allow all operations for authenticated users
 CREATE POLICY "services_allow_all" ON public.services
   FOR ALL
   TO authenticated
@@ -65,7 +68,7 @@ CREATE POLICY "service_variants_allow_all" ON public.service_variants
   USING (TRUE)
   WITH CHECK (TRUE);
 
--- Also allow anonymous (for public pages)
+-- Allow anonymous read access (for public booking page)
 CREATE POLICY "services_allow_anonymous" ON public.services
   FOR SELECT
   TO anon
