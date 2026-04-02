@@ -25,7 +25,7 @@ export const useServiceVariants = () => {
       const { data, error } = await supabase
         .from('service_variants')
         .select('*')
-        .eq('isActive', true)
+        .eq('active', true)
         .order('createdAt', { ascending: true })
 
       if (error) throw error
@@ -102,7 +102,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .select('*')
         .eq('serviceId', serviceId)
-        .eq('isActive', true)
+        .eq('active', true)
         .order('price', { ascending: true })
 
       if (error) throw error
