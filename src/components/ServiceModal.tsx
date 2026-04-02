@@ -101,13 +101,14 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
           />
 
           {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
-          >
-            <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-black/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md"
+            >
+              <div className="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-black/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
                 <h2 className="text-xl font-bold text-white">
@@ -205,7 +206,8 @@ export const ServiceModal: React.FC<ServiceModalProps> = ({
                 </div>
               </form>
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
