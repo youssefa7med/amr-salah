@@ -17,27 +17,27 @@ export const useBookings = () => {
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
-        .order('bookingtime', { ascending: true })
+        .order('booking_time', { ascending: true })
 
       if (error) throw error
       console.log('Bookings fetched:', data?.length || 0, 'records')
 
-      // Convert lowercase database field names to camelCase
+      // Map snake_case database columns to camelCase
       const normalizedData = (data || []).map((b: any) => ({
         id: b.id,
-        clientId: b.clientid,
-        clientName: b.clientname,
-        clientPhone: b.clientphone,
-        barberId: b.barberid,
-        barberName: b.barbername,
-        serviceType: b.servicetype,
-        bookingTime: b.bookingtime,
+        clientId: b.client_id,
+        clientName: b.client_name,
+        clientPhone: b.client_phone,
+        barberId: b.barber_id,
+        barberName: b.barber_name,
+        serviceType: b.service_name,
+        bookingTime: b.booking_time,
         duration: b.duration,
-        queueNumber: b.queuenumber,
+        queueNumber: b.queue_number,
         status: b.status,
         notes: b.notes,
-        createdAt: b.createdat,
-        updatedAt: b.updatedat,
+        createdAt: b.created_at,
+        updatedAt: b.updated_at,
       }))
 
       setBookings(normalizedData)
@@ -306,19 +306,19 @@ export const useBookings = () => {
       })
 
       const newBooking = {
-        clientid: booking.clientId,
-        clientname: booking.clientName,
-        clientphone: booking.clientPhone,
-        barberid: booking.barberId || recommendedBarberId,
-        barbername: booking.barberName,
-        servicetype: booking.serviceType,
-        bookingtime: booking.bookingTime,
+        client_id: booking.clientId,
+        client_name: booking.clientName,
+        client_phone: booking.clientPhone,
+        barber_id: booking.barberId || recommendedBarberId,
+        barber_name: booking.barberName,
+        service_name: booking.serviceType,
+        booking_time: booking.bookingTime,
         duration: booking.duration,
-        queuenumber: queueNumber,
+        queue_number: queueNumber,
         status: 'pending',
         notes: booking.notes,
-        createdat: new Date().toISOString(),
-        updatedat: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
 
       // Generate unique ID (Supabase should do this, but we add safeguard)
@@ -413,12 +413,27 @@ export const useBookings = () => {
         }
       }
 
-      // Convert camelCase to lowercase for PostgreSQL
+      // Convert camelCase to snake_case for PostgreSQL
       const dbUpdates: any = {}
+      const camelToSnakeMap: { [key: string]: string } = {
+        clientId: 'client_id',
+        clientName: 'client_name',
+        clientPhone: 'client_phone',
+        barberId: 'barber_id',
+        barberName: 'barber_name',
+        serviceType: 'service_name',
+        bookingTime: 'booking_time',
+        duration: 'duration',
+        queueNumber: 'queue_number',
+        status: 'status',
+        notes: 'notes',
+      }
+      
       Object.entries(updates).forEach(([key, value]) => {
-        dbUpdates[key.toLowerCase()] = value
+        const dbKey = camelToSnakeMap[key] || key
+        dbUpdates[dbKey] = value
       })
-      dbUpdates['updatedat'] = new Date().toISOString()
+      dbUpdates['updated_at'] = new Date().toISOString()
 
       const { data, error } = await supabase
         .from('bookings')
