@@ -16,7 +16,7 @@ export const useExpenses = () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .order('date', { ascending: false })
+        .order('expense_date', { ascending: false })
 
       if (error) throw error
       console.log('Expenses fetched:', data?.length || 0, 'records')
@@ -42,7 +42,7 @@ export const useExpenses = () => {
         .insert({
           ...expense,
           created_at: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .select()
 
@@ -75,9 +75,9 @@ export const useExpenses = () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: false })
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
+        .order('expense_date', { ascending: false })
 
       if (error) throw error
       return data || []
@@ -93,7 +93,7 @@ export const useExpenses = () => {
       const { data, error } = await supabase
         .from('expenses')
         .select('amount')
-        .eq('date', today)
+        .eq('expense_date', today)
 
       if (error) throw error
       return data?.reduce((sum: number, e: any) => sum + (e.amount || 0), 0) || 0
