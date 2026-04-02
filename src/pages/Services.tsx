@@ -1,127 +1,44 @@
-import React, { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import React, { useState } from 'react'
 import { GlassCard } from '../components/ui/GlassCard'
-import { Modal } from '../components/ui/Modal'
 import { useServices } from '../db/hooks/useServices'
-import { useServiceVariants } from '../db/hooks/useServiceVariants'
 import { motion } from 'framer-motion'
-import { Trash2, Edit2, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trash2, Plus, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { ServiceModal } from '../components/ServiceModal'
 
 export const Services: React.FC = () => {
-  const { t } = useTranslation()
   const { services, addService, deleteService, updateService } = useServices()
-  const { addVariant, deleteVariant } = useServiceVariants()
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState('haircut')
-  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
-  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null)
-  const [serviceVariantsMap, setServiceVariantsMap] = useState<{[key: string]: any[]}>({})
-  const [formData, setFormData] = useState({
-    nameAr: '',
-    nameEn: '',
-    price: 0,
-    duration: 0,
-    category: 'haircut',
-  })
-  const [variants, setVariants] = useState<Array<{nameAr: string; nameEn: string; price: number}>>([])
-  const [newVariant, setNewVariant] = useState({nameAr: '', nameEn: '', price: 0})
+  const [editingService, setEditingService] = useState<any | null>(null)
 
-  const categories = ['haircut', 'beard', 'skincare', 'kids', 'packages']
-
-  // Load variants for all services  
-  useEffect(() => {
-    const loadAllVariants = async () => {
-      // For now, just initialize empty map - variants are loaded separately
-      const variantsMap: {[key: string]: any[]} = {}
-      setServiceVariantsMap(variantsMap)
-    }
-
-    if (services.length > 0) {
-      loadAllVariants()
-    }
-  }, [services])
-
-  const openAddModal = () => {
-    setEditingServiceId(null)
-    setFormData({ nameAr: '', nameEn: '', price: 0, duration: 0, category: 'haircut' })
-    setVariants([])
-    setNewVariant({nameAr: '', nameEn: '', price: 0})
+  const handleOpenAddModal = () => {
+    setEditingService(null)
     setIsModalOpen(true)
   }
 
-  const openEditModal = (service: any) => {
-    setEditingServiceId(service.id)
-    setFormData({
-      nameAr: service.nameAr,
-      nameEn: service.nameEn,
-      price: service.price,
-      duration: service.duration,
-      category: service.category,
-    })
-    setVariants([])
-    setNewVariant({nameAr: '', nameEn: '', price: 0})
+  const handleOpenEditModal = (service: any) => {
+    setEditingService(service)
     setIsModalOpen(true)
   }
 
-  const handleAddVariantToList = () => {
-    if (!newVariant.nameAr || !newVariant.nameEn || newVariant.price <= 0) {
-      toast.error('أضف اسم النوع والسعر')
-      return
-    }
-    setVariants([...variants, newVariant])
-    setNewVariant({nameAr: '', nameEn: '', price: 0})
-  }
-
-  const handleRemoveVariant = (idx: number) => {
-    setVariants(variants.filter((_, i) => i !== idx))
-  }
-
-  const handleSaveService = async () => {
-    if (!formData.nameAr || !formData.price) {
-      toast.error(t('errors.required_field'))
-      return
-    }
-
+  const handleSave = async (data: { nameAr: string; price: number; duration: number }) => {
     try {
-      if (editingServiceId) {
-        // Update existing service
-        await updateService(editingServiceId, {
-          nameAr: formData.nameAr,
-          nameEn: formData.nameEn,
-          price: formData.price,
-          duration: formData.duration,
-          category: formData.category,
-        })
+      if (editingService) {
+        await updateService(editingService.id, { ...data, nameEn: data.nameAr } as any)
         toast.success('تم تحديث الخدمة')
       } else {
-        // Add new service
-        const service = await addService({
-          ...formData,
+        await addService({
+          ...data,
+          nameEn: data.nameAr,
+          category: 'haircut',
           active: true,
-        })
-
-        // Add variants if any
-        if (variants.length > 0 && service?.id) {
-          for (const variant of variants) {
-            await addVariant({
-              serviceId: service.id,
-              nameAr: variant.nameAr,
-              nameEn: variant.nameEn,
-              price: variant.price,
-              isActive: true,
-            })
-          }
-        }
-        toast.success(t('notifications.service_added'))
+        } as any)
+        toast.success('تم إضافة الخدمة')
       }
-      setFormData({ nameAr: '', nameEn: '', price: 0, duration: 0, category: 'haircut' })
-      setVariants([])
-      setNewVariant({nameAr: '', nameEn: '', price: 0})
       setIsModalOpen(false)
-      setEditingServiceId(null)
-    } catch (err) {
-      toast.error(t('errors.database_error'))
+      setEditingService(null)
+    } catch (err: any) {
+      toast.error(err.message || 'حدث خطأ')
     }
   }
 
@@ -129,360 +46,108 @@ export const Services: React.FC = () => {
     if (confirm('هل تريد حذف هذه الخدمة؟')) {
       try {
         await deleteService(id)
-        toast.success(t('notifications.service_deleted'))
-      } catch (err) {
-        toast.error(t('errors.database_error'))
+        toast.success('تم حذف الخدمة')
+      } catch (err: any) {
+        toast.error(err.message || 'حدث خطأ')
       }
     }
   }
-
-  const handleDeleteVariant = async (variantId: string) => {
-    if (confirm('هل تريد حذف هذا النوع؟')) {
-      try {
-        await deleteVariant(variantId)
-        toast.success('تم حذف النوع')
-        // Refresh variants
-        const updated = {...serviceVariantsMap}
-        Object.keys(updated).forEach(serviceId => {
-          updated[serviceId] = updated[serviceId].filter(v => v.id !== variantId)
-        })
-        setServiceVariantsMap(updated)
-      } catch (err) {
-        toast.error(t('errors.database_error'))
-      }
-    }
-  }
-
-  const filteredServices = selectedCategory
-    ? services.filter((s) => s.category === selectedCategory)
-    : services
 
   return (
     <div className="space-y-6">
-      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">{t('services.title')}</h1>
-        <motion.button
-          onClick={openAddModal}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 px-4 py-2 bg-gold-400/20 text-gold-400 border border-gold-400/20 rounded-lg hover:bg-gold-400/30 transition"
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-white">الخدمات</h1>
+        <button
+          onClick={handleOpenAddModal}
+          className="flex items-center gap-2 px-4 py-2 bg-gold-400/20 text-gold-400 border border-gold-400/20 rounded-lg hover:bg-gold-400/30 transition font-medium"
         >
           <Plus size={20} />
-          {t('services.add_service')}
-        </motion.button>
-      </motion.div>
-
-      {/* Category Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
-              selectedCategory === cat
-                ? 'bg-gold-400/20 text-gold-400 border border-gold-400/20'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10'
-            }`}
-          >
-            {t(`pos.categories.${cat}`)}
-          </button>
-        ))}
+          + إضافة خدمة
+        </button>
       </div>
 
-      {/* Services Grid - Card Based Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((service, idx) => {
-          const serviceId = service.id || String(idx)
-          const serviceVariants = serviceVariantsMap[serviceId] || []
-          const isExpanded = expandedServiceId === serviceId
-
-          return (
-            <motion.div
-              key={serviceId}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-            >
-              <GlassCard>
-                <div className="space-y-4">
-                  {/* Service Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-white font-bold text-lg">{service.nameAr}</p>
-                      <p className="text-xs text-gray-400 mb-2">{service.nameEn}</p>
-                      <div className="flex items-center gap-3">
-                        <span className="text-gold-400 font-bold text-xl">{service.price} ج.م</span>
-                        <span className="text-xs text-gray-400">⏱️ {service.duration} دقائق</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => openEditModal(service)}
-                        className="p-2 hover:bg-white/10 rounded transition"
-                        title="تعديل الخدمة"
-                      >
-                        <Edit2 size={18} className="text-blue-400" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(service.id!)}
-                        className="p-2 hover:bg-red-500/10 rounded transition"
-                        title="حذف الخدمة"
-                      >
-                        <Trash2 size={18} className="text-red-400" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Variants Section */}
-                  {serviceVariants.length > 0 && (
-                    <div className="border-t border-white/10 pt-3">
-                      <button
-                        onClick={() =>
-                          setExpandedServiceId(isExpanded ? null : serviceId)
-                        }
-                        className="w-full flex items-center justify-between p-2 hover:bg-white/5 rounded transition"
-                      >
-                        <span className="text-sm text-gray-300">
-                          الأنواع ({serviceVariants.length})
-                        </span>
-                        {isExpanded ? (
-                          <ChevronUp size={16} className="text-gold-400" />
-                        ) : (
-                          <ChevronDown size={16} className="text-gray-400" />
-                        )}
-                      </button>
-
-                      {/* Expanded Variants List */}
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="mt-3 space-y-2 border-t border-white/10 pt-3"
+      {/* Services List */}
+      {services.length === 0 ? (
+        <GlassCard>
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-lg">لا توجد خدمات</p>
+            <p className="text-gray-500 text-sm mt-2">ابدأ بإضافة خدمة جديدة</p>
+          </div>
+        </GlassCard>
+      ) : (
+        <GlassCard>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-gray-300">#</th>
+                  <th className="text-right px-6 py-4 text-sm font-semibold text-gray-300">اسم الخدمة</th>
+                  <th className="text-center px-6 py-4 text-sm font-semibold text-gray-300">السعر</th>
+                  <th className="text-center px-6 py-4 text-sm font-semibold text-gray-300">المدة</th>
+                  <th className="text-center px-6 py-4 text-sm font-semibold text-gray-300">الإجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((service, idx) => (
+                  <motion.tr
+                    key={service.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="border-b border-white/5 hover:bg-white/5 transition"
+                  >
+                    <td className="px-6 py-4 text-gray-400 text-sm">{idx + 1}</td>
+                    <td className="px-6 py-4 text-white font-medium">{service.nameAr}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-gold-400 font-bold">{service.price} ج.م</span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-gray-300">{service.duration} د</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditModal(service)}
+                          className="p-2 hover:bg-blue-500/20 rounded transition"
+                          title="تعديل"
                         >
-                          {serviceVariants.map((variant: any) => (
-                            <div
-                              key={variant.id}
-                              className="flex items-center justify-between p-2 bg-white/5 rounded border border-white/10"
-                            >
-                              <div className="flex-1">
-                                <p className="text-white text-sm font-medium">
-                                  {variant.nameAr}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {variant.nameEn}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <p className="text-gold-400 font-bold text-sm">
-                                  {variant.price} ج.م
-                                </p>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteVariant(variant.id)
-                                  }
-                                  className="p-1 hover:bg-red-500/10 rounded transition"
-                                >
-                                  <X size={14} className="text-red-400" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </GlassCard>
-            </motion.div>
-          )
-        })}
-      </div>
+                          <Edit2 size={16} className="text-blue-400" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(service.id!)}
+                          className="p-2 hover:bg-red-500/20 rounded transition"
+                          title="حذف"
+                        >
+                          <Trash2 size={16} className="text-red-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Add/Edit Service Modal */}
-      <Modal
+          {/* Footer Stats */}
+          <div className="border-t border-white/10 mt-6 pt-4 text-sm text-gray-400">
+            إجمالي الخدمات: <span className="text-gold-400 font-bold">{services.length}</span>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Modal */}
+      <ServiceModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false)
-          setEditingServiceId(null)
-          setFormData({ nameAr: '', nameEn: '', price: 0, duration: 0, category: 'haircut' })
-          setVariants([])
-          setNewVariant({nameAr: '', nameEn: '', price: 0})
+          setEditingService(null)
         }}
-        title={editingServiceId ? 'تعديل الخدمة' : t('services.add_service')}
-        size="lg"
-      >
-        <div className="space-y-6 max-h-96 overflow-y-auto">
-          {/* Base Service Info */}
-          <div className="space-y-4 pb-4 border-b border-white/10">
-            <h3 className="text-white font-semibold">معلومات الخدمة</h3>
-            
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">اسم الخدمة بالعربية *</label>
-              <input
-                type="text"
-                placeholder="مثال: قص شعر، حلاقة لحية، عناية بالبشرة"
-                value={formData.nameAr}
-                onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">اسم الخدمة الذي سيظهر في الفاتورة والإيصالات</p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Service Name in English *</label>
-              <input
-                type="text"
-                placeholder="Example: Haircut, Beard Trim, Skincare"
-                value={formData.nameEn}
-                onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">Service name for English display</p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">السعر الأساسي (ج.م) *</label>
-              <input
-                type="number"
-                placeholder="مثال: 50"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">السعر الافتراضي للخدمة بالجنيه المصري</p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">المدة (دقائق)</label>
-              <input
-                type="number"
-                placeholder="مثال: 30"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">الوقت المتوقع لإنهاء الخدمة (للمعلومات فقط)</p>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">فئة الخدمة</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full"
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {t(`pos.categories.${cat}`)}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">تصنيف الخدمة لتنظيم أفضل</p>
-            </div>
-          </div>
-
-          {/* Service Variants - Only show for new services */}
-          {!editingServiceId && (
-            <div className="space-y-4">
-              <h3 className="text-white font-semibold">أنواع الخدمة (اختياري)</h3>
-              <p className="text-xs text-gray-400">
-                أنواع مختلفة من نفس الخدمة بأسعار مختلفة. مثال: قص شعر عادي = 40 ج.م، قص فاخر = 75 ج.م
-              </p>
-              <div className="bg-white/5 p-4 rounded-lg space-y-3">
-                <div>
-                  <label className="block text-sm text-gray-300 mb-1">نوع الخدمة بالعربية</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: قص عادي، قص فاخر، باقة كاملة"
-                    value={newVariant.nameAr}
-                    onChange={(e) => setNewVariant({...newVariant, nameAr: e.target.value})}
-                    className="w-full"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">تفاصيل نوع الخدمة</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-300 mb-1">Service Type in English</label>
-                  <input
-                    type="text"
-                    placeholder="Example: Standard Cut, Premium, Full Package"
-                    value={newVariant.nameEn}
-                    onChange={(e) => setNewVariant({...newVariant, nameEn: e.target.value})}
-                    className="w-full"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Service type details for English display</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-300 mb-1">سعر النوع (ج.م)</label>
-                  <input
-                    type="number"
-                    placeholder="مثال: 75"
-                    value={newVariant.price}
-                    onChange={(e) => setNewVariant({...newVariant, price: parseFloat(e.target.value)})}
-                    className="w-full"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">السعر لهذا النوع من الخدمة</p>
-                </div>
-
-                <button
-                  onClick={handleAddVariantToList}
-                  className="w-full px-3 py-2 bg-gold-400/10 text-gold-400 border border-gold-400/20 rounded hover:bg-gold-400/20 transition"
-                >
-                  + إضافة نوع
-                </button>
-              </div>
-
-              {/* Added Variants List */}
-              {variants.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-gray-400 text-sm">الأنواع المضافة ({variants.length}):</p>
-                  {variants.map((v, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded border border-white/10">
-                      <div>
-                        <p className="text-white text-sm">{v.nameAr}</p>
-                        <p className="text-xs text-gray-400">{v.nameEn}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-gold-400 font-bold">{v.price} ج.م</p>
-                        <button
-                          onClick={() => handleRemoveVariant(idx)}
-                          className="p-1 hover:bg-red-500/10 rounded transition"
-                        >
-                          <X size={16} className="text-red-400" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-white/10">
-            <button
-              onClick={() => {
-                setIsModalOpen(false)
-                setEditingServiceId(null)
-                setFormData({ nameAr: '', nameEn: '', price: 0, duration: 0, category: 'haircut' })
-                setVariants([])
-                setNewVariant({nameAr: '', nameEn: '', price: 0})
-              }}
-              className="flex-1 px-4 py-2 border border-white/20 rounded-lg hover:bg-white/5 transition"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleSaveService}
-              className="flex-1 px-4 py-2 bg-gold-400/20 text-gold-400 border border-gold-400/20 rounded-lg font-bold hover:bg-gold-400/30 transition"
-            >
-              {editingServiceId ? 'تحديث' : t('common.save')}
-            </button>
-          </div>
-        </div>
-      </Modal>
+        onSave={handleSave}
+        initialData={
+          editingService
+            ? { nameAr: editingService.nameAr, price: editingService.price, duration: editingService.duration }
+            : null
+        }
+      />
     </div>
   )
 }

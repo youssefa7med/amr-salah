@@ -26,7 +26,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .select('*')
         .eq('active', true)
-        .order('created_at', { ascending: true })
+        .order('createdAt', { ascending: true })
 
       if (error) throw error
       setVariants(data || [])
@@ -49,7 +49,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .insert({
           ...variant,
-          created_at: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()
