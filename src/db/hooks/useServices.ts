@@ -38,7 +38,7 @@ export const useServices = () => {
         .from('services')
         .insert({
           ...service,
-          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()

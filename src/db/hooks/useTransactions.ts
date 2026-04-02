@@ -20,7 +20,7 @@ export const useTransactions = () => {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       console.log('Transactions fetched:', data?.length || 0, 'records')
@@ -45,8 +45,8 @@ export const useTransactions = () => {
         .from('transactions')
         .insert({
           ...transaction,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .select()
 
@@ -63,8 +63,8 @@ export const useTransactions = () => {
             .select('id')
             .eq('clientPhone', clientPhone)
             .in('status', ['pending', 'confirmed'])
-            .gte('bookingDate', today + 'T00:00:00')
-            .lte('bookingDate', today + 'T23:59:59')
+            .gte('transactiondate', today + 'T00:00:00')
+            .lte('transactiondate', today + 'T23:59:59')
             .order('bookingTime', { ascending: true })
 
           if (!bookingErr && activeBookings && activeBookings.length > 0) {
@@ -132,8 +132,8 @@ export const useTransactions = () => {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
-        .eq('clientId', clientId)
-        .order('createdAt', { ascending: false })
+        .eq('clientid', clientId)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       return data || []

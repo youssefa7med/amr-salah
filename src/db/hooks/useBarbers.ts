@@ -14,7 +14,7 @@ export const useBarbers = () => {
       const { data, error } = await supabase
         .from('barbers')
         .select('*')
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setBarbers(data || [])

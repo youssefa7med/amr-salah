@@ -27,7 +27,7 @@ export const useVisitLogs = () => {
       const { data, error } = await supabase
         .from('visit_logs')
         .select('*')
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setVisitLogs(data || [])
@@ -50,7 +50,7 @@ export const useVisitLogs = () => {
         .from('visit_logs')
         .insert({
           ...log,
-          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()
@@ -69,8 +69,8 @@ export const useVisitLogs = () => {
       const { data, error } = await supabase
         .from('visit_logs')
         .select('*')
-        .eq('clientId', clientId)
-        .order('visitDate', { ascending: false })
+        .eq('client_id', clientId)
+        .order('visit_date', { ascending: false })
 
       if (error) throw error
       return data || []

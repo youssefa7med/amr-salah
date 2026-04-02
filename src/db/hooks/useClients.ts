@@ -14,7 +14,7 @@ export const useClients = () => {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setClients(data || [])
@@ -37,7 +37,7 @@ export const useClients = () => {
         .from('clients')
         .insert({
           ...client,
-          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()

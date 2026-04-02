@@ -41,7 +41,7 @@ export const useExpenses = () => {
         .from('expenses')
         .insert({
           ...expense,
-          createdAt: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
         .select()
