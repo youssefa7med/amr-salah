@@ -55,7 +55,7 @@ export const Analytics: React.FC = () => {
       (e) => e.date >= startDateStr && e.date <= endDateStr
     )
 
-    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.total || t.amount || 0), 0)
+    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.amount || 0), 0)
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
     const netProfit = totalRevenue - totalExpenses
     const uniqueClientsCount = new Set(filteredTransactions.map((t) => t.clientId)).size
@@ -131,7 +131,7 @@ export const Analytics: React.FC = () => {
                 border: '1px solid rgba(255,255,255,0.1)',
               }}
             />
-            <Line type="monotone" dataKey="total" stroke="#D4AF37" dot={false} />
+            <Line type="monotone" dataKey="amount" stroke="#D4AF37" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </GlassCard>
