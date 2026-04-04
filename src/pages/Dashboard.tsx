@@ -82,7 +82,7 @@ export const Dashboard: React.FC = () => {
       return String(t.date).slice(0, 10) === today
     })
 
-    const revenue = todayTx.reduce((sum, t) => sum + (Number(t.total) || 0), 0)
+    const revenue = todayTx.reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
     const todayClientIds = new Set(todayTx.map((t) => t.clientId).filter(Boolean))
     const monthTx = transactions.filter((t) => {
       if (!t || !t.date) return false
@@ -259,7 +259,7 @@ export const Dashboard: React.FC = () => {
                       {tx.date} {tx.time}
                     </p>
                   </div>
-                  <Badge label={`${(tx.total || 0).toFixed(2)} ج.م`} variant="gold" />
+                  <Badge label={`${(tx.amount || 0).toFixed(2)} ج.م`} variant="gold" />
                 </motion.div>
               ))
             ) : (
