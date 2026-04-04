@@ -17,7 +17,7 @@ export const useBookings = () => {
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
-        .order('bookingtime', { ascending: true })
+        .order('booking_time', { ascending: true })
 
       if (error) throw error
       console.log('Bookings fetched:', data?.length || 0, 'records')
@@ -31,7 +31,7 @@ export const useBookings = () => {
         barberId: b.barberid,
         barberName: b.barbername,
         serviceType: b.servicetype,
-        bookingTime: b.bookingtime,
+        bookingTime: b.booking_time,
         duration: b.duration,
         queueNumber: b.queuenumber,
         status: b.status,
@@ -312,7 +312,7 @@ export const useBookings = () => {
         barberid: booking.barberId || recommendedBarberId,
         barbername: booking.barberName,
         servicetype: booking.serviceType,
-        bookingtime: booking.bookingTime,
+        booking_time: booking.bookingTime,
         duration: booking.duration,
         queuenumber: queueNumber,
         status: 'pending',
@@ -422,7 +422,7 @@ export const useBookings = () => {
         barberId: 'barberid',
         barberName: 'barbername',
         serviceType: 'servicetype',
-        bookingTime: 'bookingtime',
+        bookingTime: 'booking_time',
         duration: 'duration',
         queueNumber: 'queuenumber',
         status: 'status',

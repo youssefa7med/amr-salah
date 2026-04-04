@@ -97,9 +97,9 @@ export const useTransactions = () => {
             .select('id')
             .eq('clientphone', clientPhone)
             .in('status', ['pending', 'confirmed'])
-            .gte('bookingtime', today + 'T00:00:00')
-            .lte('bookingtime', today + 'T23:59:59')
-            .order('bookingtime', { ascending: true })
+            .gte('booking_time', today + 'T00:00:00')
+            .lte('booking_time', today + 'T23:59:59')
+            .order('booking_time', { ascending: true })
 
           if (!bookingErr && activeBookings && activeBookings.length > 0) {
             for (const booking of activeBookings) {
