@@ -32,9 +32,10 @@ export interface Service {
   id?: string
   nameAr: string
   nameEn: string
+  description?: string
   price: number
   duration: number
-  category: string
+  category?: string
   active: boolean
   createdAt: string
   updatedAt: string

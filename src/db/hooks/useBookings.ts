@@ -306,19 +306,19 @@ export const useBookings = () => {
       })
 
       const newBooking = {
-        client_id: booking.clientId,
-        client_name: booking.clientName,
-        client_phone: booking.clientPhone,
-        barber_id: booking.barberId || recommendedBarberId,
-        barber_name: booking.barberName,
-        service_name: booking.serviceType,
-        booking_time: booking.bookingTime,
+        clientid: booking.clientId,
+        clientname: booking.clientName,
+        clientphone: booking.clientPhone,
+        barberid: booking.barberId || recommendedBarberId,
+        barbername: booking.barberName,
+        servicetype: booking.serviceType,
+        bookingtime: booking.bookingTime,
         duration: booking.duration,
-        queue_number: queueNumber,
+        queuenumber: queueNumber,
         status: 'pending',
         notes: booking.notes,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
       }
 
       // Generate unique ID (Supabase should do this, but we add safeguard)
@@ -413,18 +413,18 @@ export const useBookings = () => {
         }
       }
 
-      // Convert camelCase to snake_case for PostgreSQL
+      // Convert camelCase to database lowercase columns for PostgreSQL
       const dbUpdates: any = {}
       const camelToSnakeMap: { [key: string]: string } = {
-        clientId: 'client_id',
-        clientName: 'client_name',
-        clientPhone: 'client_phone',
-        barberId: 'barber_id',
-        barberName: 'barber_name',
-        serviceType: 'service_name',
-        bookingTime: 'booking_time',
+        clientId: 'clientid',
+        clientName: 'clientname',
+        clientPhone: 'clientphone',
+        barberId: 'barberid',
+        barberName: 'barbername',
+        serviceType: 'servicetype',
+        bookingTime: 'bookingtime',
         duration: 'duration',
-        queueNumber: 'queue_number',
+        queueNumber: 'queuenumber',
         status: 'status',
         notes: 'notes',
       }

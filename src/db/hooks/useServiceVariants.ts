@@ -26,7 +26,7 @@ export const useServiceVariants = () => {
         .from('service_variants')
         .select('*')
         .eq('active', true)
-        .order('createdat', { ascending: true })
+        .order('created_at', { ascending: true })
 
       if (error) throw error
       
@@ -34,14 +34,14 @@ export const useServiceVariants = () => {
       if (data && data.length > 0) {
         const transformedData = data.map((variant: any) => ({
           id: variant.id,
-          serviceId: variant.serviceid,
-          nameAr: variant.namear,
-          nameEn: variant.nameen,
+          serviceId: variant.service_id,
+          nameAr: variant.name_ar,
+          nameEn: variant.name,
           price: variant.price,
           duration: variant.duration,
           isActive: variant.active,
-          createdAt: variant.createdat,
-          updatedAt: variant.updatedat,
+          createdAt: variant.created_at,
+          updatedAt: variant.updated_at,
         }))
         setVariants(transformedData)
       } else {
@@ -65,14 +65,14 @@ export const useServiceVariants = () => {
       const { data, error } = await supabase
         .from('service_variants')
         .insert({
-          serviceid: variant.serviceId,
-          namear: variant.nameAr,
-          nameen: variant.nameEn,
+          service_id: variant.serviceId,
+          name_ar: variant.nameAr,
+          name: variant.nameEn,
           price: variant.price,
           duration: variant.duration,
           active: variant.isActive,
-          createdat: new Date().toISOString(),
-          updatedat: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .select()
 
@@ -89,14 +89,14 @@ export const useServiceVariants = () => {
     try {
       const updateData: any = {}
       
-      if (updates.serviceId) updateData.serviceid = updates.serviceId
-      if (updates.nameAr) updateData.namear = updates.nameAr
-      if (updates.nameEn) updateData.nameen = updates.nameEn
+      if (updates.serviceId) updateData.service_id = updates.serviceId
+      if (updates.nameAr) updateData.name_ar = updates.nameAr
+      if (updates.nameEn) updateData.name = updates.nameEn
       if (updates.price !== undefined) updateData.price = updates.price
       if (updates.duration !== undefined) updateData.duration = updates.duration
       if (updates.isActive !== undefined) updateData.active = updates.isActive
       
-      updateData.updatedat = new Date().toISOString()
+      updateData.updated_at = new Date().toISOString()
 
       const { error } = await supabase
         .from('service_variants')
@@ -131,7 +131,7 @@ export const useServiceVariants = () => {
       const { data, error } = await supabase
         .from('service_variants')
         .select('*')
-        .eq('serviceid', serviceId)
+        .eq('service_id', serviceId)
         .eq('active', true)
         .order('price', { ascending: true })
 
@@ -141,14 +141,14 @@ export const useServiceVariants = () => {
       if (data && data.length > 0) {
         return data.map((variant: any) => ({
           id: variant.id,
-          serviceId: variant.serviceid,
-          nameAr: variant.namear,
-          nameEn: variant.nameen,
+          serviceId: variant.service_id,
+          nameAr: variant.name_ar,
+          nameEn: variant.name,
           price: variant.price,
           duration: variant.duration,
           isActive: variant.active,
-          createdAt: variant.createdat,
-          updatedAt: variant.updatedat,
+          createdAt: variant.created_at,
+          updatedAt: variant.updated_at,
         }))
       }
       return []

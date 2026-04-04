@@ -95,11 +95,11 @@ export const useTransactions = () => {
           const { data: activeBookings, error: bookingErr } = await supabase
             .from('bookings')
             .select('id')
-            .eq('clientPhone', clientPhone)
+            .eq('clientphone', clientPhone)
             .in('status', ['pending', 'confirmed'])
-            .gte('transactiondate', today + 'T00:00:00')
-            .lte('transactiondate', today + 'T23:59:59')
-            .order('bookingTime', { ascending: true })
+            .gte('bookingtime', today + 'T00:00:00')
+            .lte('bookingtime', today + 'T23:59:59')
+            .order('bookingtime', { ascending: true })
 
           if (!bookingErr && activeBookings && activeBookings.length > 0) {
             for (const booking of activeBookings) {
@@ -107,7 +107,7 @@ export const useTransactions = () => {
                 .from('bookings')
                 .update({
                   status: 'completed',
-                  updatedAt: new Date().toISOString()
+                  updatedat: new Date().toISOString()
                 })
                 .eq('id', booking.id)
               
@@ -182,11 +182,11 @@ export const useTransactions = () => {
       const today = getEgyptDateString()
       const { data, error } = await supabase
         .from('transactions')
-        .select('total')
-        .eq('date', today)
+        .select('amount')
+        .eq('transactiondate', today)
 
       if (error) throw error
-      return data?.reduce((sum: number, t: any) => sum + (t.total || 0), 0) || 0
+      return data?.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || 0
     } catch (err: any) {
       toast.error(err.message)
       return 0
@@ -197,10 +197,10 @@ export const useTransactions = () => {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('total, date')
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: true })
+        .select('amount, transactiondate')
+        .gte('transactiondate', startDate)
+        .lte('transactiondate', endDate)
+        .order('transactiondate', { ascending: true })
 
       if (error) throw error
       return data || []
