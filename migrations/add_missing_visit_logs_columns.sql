@@ -1,4 +1,5 @@
 -- Add missing columns to visit_logs table
+ALTER TABLE visit_logs ADD COLUMN IF NOT EXISTS barberid UUID;
 ALTER TABLE visit_logs ADD COLUMN IF NOT EXISTS barbername TEXT;
 ALTER TABLE visit_logs ADD COLUMN IF NOT EXISTS visit_time TIME;
 ALTER TABLE visit_logs ADD COLUMN IF NOT EXISTS services_count INT DEFAULT 0;
