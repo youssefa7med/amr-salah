@@ -533,7 +533,7 @@ export const Clients: React.FC = () => {
                           <span className="text-gray-300">{log.visitTime}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-400 mb-2">{log.servicesCount} services • {log.totalSpent.toFixed(2)} ج.م</p>
+                      <p className="text-sm text-gray-400 mb-2">{log.servicesCount || 0} services • {(log.totalSpent || 0).toFixed(2)} ج.م</p>
                       {log.notes && <p className="text-xs text-gray-500">{log.notes}</p>}
                     </div>
                   ))}
