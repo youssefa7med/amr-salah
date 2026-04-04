@@ -16,7 +16,7 @@ export const useServices = () => {
         .from('services')
         .select('*')
         .eq('active', true)
-        .order('created_at', { ascending: true })
+        .order('createdat', { ascending: true })
 
       console.log('Fetch error:', error)
       console.log('Fetch data:', data)
@@ -29,15 +29,15 @@ export const useServices = () => {
         // Transform lowercase columns to camelCase
         const transformedData = data.map((service: any) => ({
           id: service.id,
-          nameAr: service.name_ar,
-          nameEn: service.name,
+          nameAr: service.namear,
+          nameEn: service.nameen,
           price: service.price,
           duration: service.duration,
           description: service.description,
           category: service.category || '',
           active: service.active,
-          createdAt: service.created_at,
-          updatedAt: service.updated_at,
+          createdAt: service.createdat,
+          updatedAt: service.updatedat,
         }))
         
         console.log('✅ Transformed data:', transformedData[0])
@@ -67,14 +67,14 @@ export const useServices = () => {
       console.log('Input service:', service)
       
       const insertData = {
-        name_ar: service.nameAr,
-        name: service.nameEn,
+        namear: service.nameAr,
+        nameen: service.nameEn,
         price: service.price,
         duration: service.duration,
         description: service.description,
         active: service.active,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
       }
       console.log('Data being inserted:', insertData)
       
@@ -105,14 +105,14 @@ export const useServices = () => {
     try {
       const updateData: any = {}
       
-      if (updates.nameAr) updateData.name_ar = updates.nameAr
-      if (updates.nameEn) updateData.name = updates.nameEn
+      if (updates.nameAr) updateData.namear = updates.nameAr
+      if (updates.nameEn) updateData.nameen = updates.nameEn
       if (updates.price !== undefined) updateData.price = updates.price
       if (updates.duration !== undefined) updateData.duration = updates.duration
       if (updates.description !== undefined) updateData.description = updates.description
       if (updates.active !== undefined) updateData.active = updates.active
       
-      updateData.updated_at = new Date().toISOString()
+      updateData.updatedat = new Date().toISOString()
 
       const { error } = await supabase
         .from('services')
