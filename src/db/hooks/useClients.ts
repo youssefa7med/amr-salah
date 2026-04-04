@@ -152,10 +152,6 @@ export const useClients = () => {
       throw err
     }
   }
-    } catch (err: any) {
-      throw err
-    }
-  }
 
   return {
     clients,
