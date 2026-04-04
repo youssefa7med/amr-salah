@@ -195,6 +195,7 @@ export const POS: React.FC = () => {
         time: timeStr,
         items: cart,
         subtotal,
+        amount: total,
         discount: discountAmount,
         discountType,
         total,
@@ -219,6 +220,9 @@ export const POS: React.FC = () => {
         visitTime: timeStr,
         servicesCount: cart.length,
         totalSpent: total,
+        barberId: selectedBarber?.id,
+        barberName: selectedBarber?.name,
+        servicetype: cart.map((item: any) => item.name).join(', ') || 'general',
         notes: `${cart.length} services - ${paymentMethod}`,
       })
 
